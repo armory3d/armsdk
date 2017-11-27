@@ -22,3 +22,6 @@
 [submodule "Kha"]
 	path = Kha
 	url = https://github.com/Kode/Kha
+[submodule "nodejs"]
+	path = nodejs
+	url = https://github.com/Kode/nodejs_bin
