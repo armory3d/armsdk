@@ -1,0 +1,24 @@
+[submodule "armory"]
+	path = armory
+	url = https://github.com/armory3d/armory
+[submodule "iron"]
+	path = iron
+	url = https://github.com/armory3d/iron
+[submodule "lib/haxebullet"]
+	path = lib/haxebullet
+	url = https://github.com/armory3d/haxebullet
+[submodule "lib/haxerecast"]
+	path = lib/haxerecast
+	url = https://github.com/armory3d/haxerecast
+[submodule "lib/iron_format"]
+	path = lib/iron_format
+	url = https://github.com/armory3d/iron_format
+[submodule "lib/zui"]
+	path = lib/zui
+	url = https://github.com/armory3d/zui
+[submodule "lib/hscript"]
+	path = lib/hscript
+	url = https://github.com/HaxeFoundation/hscript
+[submodule "Kha"]
+	path = Kha
+	url = https://github.com/Kode/Kha
