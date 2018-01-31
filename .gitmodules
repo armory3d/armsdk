@@ -25,6 +25,3 @@
 [submodule "nodejs"]
 	path = nodejs
 	url = https://github.com/Kode/nodejs_bin
-[submodule "armory_tools"]
-	path = armory_tools
-	url = https://github.com/armory3d/armory_tools
