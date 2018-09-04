@@ -28,3 +28,6 @@
 [submodule "lib/armory_tools"]
 	path = lib/armory_tools
 	url = https://github.com/armory3d/armory_tools
+[submodule "Krom_bin"]
+	path = Krom
+	url = https://github.com/armory3d/Krom_bin

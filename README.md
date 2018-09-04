@@ -13,3 +13,5 @@ cd armsdk
 git submodule foreach --recursive git pull origin master
 git pull origin master
 ```
+
+https://armory3d.org/manual/#/dev/gitversion?id=manual-clone
