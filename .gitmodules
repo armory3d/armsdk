@@ -16,9 +16,6 @@
 [submodule "lib/zui"]
 	path = lib/zui
 	url = https://github.com/armory3d/zui
-[submodule "lib/hscript"]
-	path = lib/hscript
-	url = https://github.com/HaxeFoundation/hscript
 [submodule "Kha"]
 	path = Kha
 	url = https://github.com/Kode/Kha
