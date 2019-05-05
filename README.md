@@ -1,8 +1,4 @@
-# armsdk
+# Armory SDK
 
-## Clone
-```
-git clone --recursive https://github.com/armory3d/armsdk
-```
-
-https://armory3d.org/manual/#/dev/gitversion?id=manual-clone
+Welcome to Armory! Please visit the setup page at:
+https://armory3d.org/manual/#/getting_started/setup
