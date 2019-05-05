@@ -43,6 +43,12 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.skip_update = True
         self.sdk_path = bpy.path.reduce_dirs([bpy.path.abspath(self.sdk_path)])[0] + '/'
 
+    def ide_path_update(self, context):
+        if self.skip_update:
+            return
+        self.skip_update = True
+        self.ide_path = bpy.path.reduce_dirs([bpy.path.abspath(self.ide_path)])[0]
+
     def ffmpeg_path_update(self, context):
         if self.skip_update or self.ffmpeg_path == '':
             return
@@ -57,6 +63,7 @@ class ArmoryAddonPreferences(AddonPreferences):
 
     sdk_bundled: BoolProperty(name="Bundled SDK", default=True)
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
+    ide_path: StringProperty(name="KodeStudio Path", subtype="FILE_PATH", update=ide_path_update, default="")
     show_advanced: BoolProperty(name="Show Advanced", default=False)
     player_gapi_win: EnumProperty(
         items = [('direct3d11', 'Auto', 'direct3d11'),
@@ -114,6 +121,7 @@ class ArmoryAddonPreferences(AddonPreferences):
             box = layout.box().column()
             box.prop(self, "player_gapi_" + get_os())
             box.prop(self, "code_editor")
+            box.prop(self, "ide_path")
             box.prop(self, "renderdoc_path")
             box.prop(self, "ffmpeg_path")
             box.prop(self, "viewport_controls")
