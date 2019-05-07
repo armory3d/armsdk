@@ -63,7 +63,7 @@ class ArmoryAddonPreferences(AddonPreferences):
 
     sdk_bundled: BoolProperty(name="Bundled SDK", default=True)
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
-    ide_path: StringProperty(name="KodeStudio Path", subtype="FILE_PATH", update=ide_path_update, default="")
+    ide_path: StringProperty(name="VS Code Path", subtype="FILE_PATH", update=ide_path_update, default="", description="Path to VS Code or Kode Studio folder")
     show_advanced: BoolProperty(name="Show Advanced", default=False)
     player_gapi_win: EnumProperty(
         items = [('direct3d11', 'Auto', 'direct3d11'),
@@ -79,7 +79,7 @@ class ArmoryAddonPreferences(AddonPreferences):
                  ('opengl', 'OpenGL', 'opengl')],
         name="Player Graphics API", default='opengl', description='Use this graphics API when launching the game in Krom player(F5)')
     code_editor: EnumProperty(
-        items = [('kodestudio', 'Kode Studio', 'kodestudio'),
+        items = [('kodestudio', 'VS Code', 'kodestudio'),
                  ('default', 'System Default', 'default')],
         name="Code Editor", default='kodestudio', description='Use this editor for editing scripts')
     ui_scale: FloatProperty(name='UI Scale', description='Adjust UI scale for Armory tools', default=1.0, min=1.0, max=4.0)
