@@ -6,7 +6,7 @@ bl_info = {
     "location": "Properties -> Render -> Armory Player",
     "description": "3D Game Engine for Blender",
     "author": "Armory3D.org",
-    "version": (2019, 5, 0),
+    "version": (2019, 6, 0),
     "blender": (2, 80, 0),
     "wiki_url": "https://armory3d.org/manual",
     "tracker_url": "https://github.com/armory3d/armory/issues"
@@ -99,7 +99,7 @@ class ArmoryAddonPreferences(AddonPreferences):
     def draw(self, context):
         self.skip_update = False
         layout = self.layout
-        layout.label(text="Welcome to Armory! Click 'Save Preferences' to keep Armory enabled.")
+        layout.label(text="Welcome to Armory!")
         p = bundled_sdk_path()
         if os.path.exists(p):
             layout.prop(self, "sdk_bundled")
