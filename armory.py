@@ -6,7 +6,7 @@ bl_info = {
     "location": "Properties -> Render -> Armory Player",
     "description": "3D Game Engine for Blender",
     "author": "Armory3D.org",
-    "version": (2019, 6, 0),
+    "version": (2019, 7, 0),
     "blender": (2, 80, 0),
     "wiki_url": "https://armory3d.org/manual",
     "tracker_url": "https://github.com/armory3d/armory/issues"
@@ -42,6 +42,9 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.sdk_path = bpy.path.reduce_dirs([bpy.path.abspath(self.sdk_path)])[0] + '/'
+        if ArmAddonStartButton.running:
+            return
+        bpy.ops.arm_addon.start()
 
     def ide_path_update(self, context):
         if self.skip_update:
