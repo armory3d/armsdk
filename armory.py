@@ -8,7 +8,7 @@ bl_info = {
     "author": "Armory3D.org",
     "version": (2019, 7, 0),
     "blender": (2, 80, 0),
-    "wiki_url": "https://armory3d.org/manual",
+    "wiki_url": "https://github.com/armory3d/armory/wiki",
     "tracker_url": "https://github.com/armory3d/armory/issues"
 }
 
@@ -281,7 +281,7 @@ class ArmAddonHelpButton(bpy.types.Operator):
     bl_description = "Git is required for Armory Updater to work"
  
     def execute(self, context):
-        webbrowser.open('https://armory3d.org/manual/#/dev/gitversion')
+        webbrowser.open('https://github.com/armory3d/armory/wiki/gitversion')
         return {"FINISHED"}
 
 @persistent
