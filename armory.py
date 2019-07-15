@@ -68,19 +68,6 @@ class ArmoryAddonPreferences(AddonPreferences):
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
     ide_path: StringProperty(name="VS Code Path", subtype="FILE_PATH", update=ide_path_update, default="", description="Path to VS Code or Kode Studio folder")
     show_advanced: BoolProperty(name="Show Advanced", default=False)
-    player_gapi_win: EnumProperty(
-        items = [('direct3d11', 'Auto', 'direct3d11'),
-                 ('opengl', 'OpenGL', 'opengl'),
-                 ('direct3d11', 'Direct3D11', 'direct3d11')],
-        name="Player Graphics API", default='direct3d11', description='Use this graphics API when launching the game in Krom player(F5)')
-    player_gapi_linux: EnumProperty(
-        items = [('opengl', 'Auto', 'opengl'),
-                 ('opengl', 'OpenGL', 'opengl')],
-        name="Player Graphics API", default='opengl', description='Use this graphics API when launching the game in Krom player(F5)')
-    player_gapi_mac: EnumProperty(
-        items = [('opengl', 'Auto', 'opengl'),
-                 ('opengl', 'OpenGL', 'opengl')],
-        name="Player Graphics API", default='opengl', description='Use this graphics API when launching the game in Krom player(F5)')
     code_editor: EnumProperty(
         items = [('kodestudio', 'VS Code', 'kodestudio'),
                  ('default', 'System Default', 'default')],
@@ -122,7 +109,6 @@ class ArmoryAddonPreferences(AddonPreferences):
         layout.prop(self, "show_advanced")
         if self.show_advanced:
             box = layout.box().column()
-            box.prop(self, "player_gapi_" + get_os())
             box.prop(self, "code_editor")
             box.prop(self, "ide_path")
             box.prop(self, "renderdoc_path")
