@@ -232,7 +232,7 @@ class ArmAddonUpdateButton(bpy.types.Operator):
         global repos_updated
         global repos_total
         repos_updated = 0
-        repos_total = 9
+        repos_total = 8
         def done():
             global repos_updated
             global repos_total
@@ -245,7 +245,6 @@ class ArmAddonUpdateButton(bpy.types.Operator):
         git_clone(done, sdk_path, 'armory3d/haxerecast', 'lib/haxerecast')
         git_clone(done, sdk_path, 'armory3d/zui', 'lib/zui')
         git_clone(done, sdk_path, 'armory3d/armory_tools', 'lib/armory_tools')
-        git_clone(done, sdk_path, 'armory3d/iron_format', 'lib/iron_format')
         git_clone(done, sdk_path, 'armory3d/Krom_bin', 'Krom')
         git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
         return {"FINISHED"}
@@ -268,7 +267,6 @@ class ArmAddonRestoreButton(bpy.types.Operator):
         restore_repo(sdk_path, 'lib/haxerecast')
         restore_repo(sdk_path, 'lib/zui')
         restore_repo(sdk_path, 'lib/armory_tools')
-        restore_repo(sdk_path, 'lib/iron_format')
         restore_repo(sdk_path, 'Kha')
         restore_repo(sdk_path, 'Krom')
         self.report({'INFO'}, 'Restored stable version')
