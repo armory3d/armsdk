@@ -252,10 +252,10 @@ class ArmAddonStopButton(bpy.types.Operator):
         return {"FINISHED"}
 
 class ArmAddonInstallButton(bpy.types.Operator):
-    '''Install Armory SDK'''
+    '''Download and set up Armory SDK'''
     bl_idname = "arm_addon.install"
-    bl_label = "Install SDK"
-    bl_description = "Install the latest development version"
+    bl_label = "Download and set up SDK"
+    bl_description = "Download and set up the latest development version"
 
     def execute(self, context):
         update_sdk(self,context)
