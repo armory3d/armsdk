@@ -97,13 +97,26 @@ class ArmoryAddonPreferences(AddonPreferences):
                 layout.prop(self, "sdk_path")
         else:
             layout.prop(self, "sdk_path")
+        sdk_path = get_sdk_path(context)
+        if os.path.exists(sdk_path + '/armory') or os.path.exists(sdk_path + '/armory_backup'):
+            sdk_exists = True
+        else:
+            sdk_exists = False
+        if not sdk_exists:
+            layout.label(text="The directory will be created.")
+        else:
+            layout.label(text="")
         box = layout.box().column()
-        box.label(text="Armory Updater")
+        box.label(text="Armory SDK Manager")
         box.label(text="Note: Development version may run unstable!")
         row = box.row(align=True)
         row.alignment = 'EXPAND'
         row.operator("arm_addon.help", icon="URL")
-        row.operator("arm_addon.update", icon="FILE_REFRESH")
+        sdk_path = get_sdk_path(context)
+        if sdk_exists:
+            row.operator("arm_addon.update", icon="FILE_REFRESH")
+        else:
+            row.operator("arm_addon.install", icon="IMPORT")
         row.operator("arm_addon.restore")
         box.label(text="Check console for download progress. Please restart Blender after successful SDK update.")
         layout.prop(self, "show_advanced")
@@ -158,24 +171,47 @@ def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
-def run_proc(cmd, done):
+def run_proc(cmd, done=None):
     def fn(p, done):
         p.wait()
         if done != None:
-            done()
-    p = subprocess.Popen(cmd)
-    threading.Thread(target=fn, args=(p, done)).start()
+            done(0)
+    p = None
+
+    try:
+        p = subprocess.Popen(cmd)
+    except OSError as err:
+        if done != None:
+            done(1)
+        print("Failed running command: " + str(cmd).replace('[', '').replace(']', '').replace(',','').replace("'",'') + '\n')
+        if err.errno == 2:
+            print("Make sure git is installed: https://git-scm.com/downloads")
+        elif err.errno == 12:
+            print("Make sure there is enough space for the SDK (at least 500mb)")
+        elif err.errno == 13:
+            print("Permission denied, try modifying the permission of the sdk folder")
+        else:
+            print("error: " + str(err))
+    except Exception as err:
+        if done != None:
+            done(1)
+        print("Failed running: " + str(cmd).replace('[', '').replace(']', '').replace(',','').replace("'",'') + '\n')
+        print("error: " + str(err) + '\n')
+    else:
+        threading.Thread(target=fn, args=(p, done)).start()
+
     return p
 
 def git_clone(done, p, gitn, n, recursive=False):
-    if not os.path.exists(p + '/' + n + '_backup'):
-        os.rename(p + '/' + n, p + '/' + n + '_backup')
-    if os.path.exists(p + '/' + n):
-        shutil.rmtree(p + '/' + n, onerror=remove_readonly)
+    path = p + '/' + n
+    if os.path.exists(path) and not os.path.exists(path + '_backup'):
+        os.rename(path, path + '_backup')
+    if os.path.exists(path):
+        shutil.rmtree(path, onerror=remove_readonly)
     if recursive:
-    	run_proc(['git', 'clone', '--recursive', 'https://github.com/' + gitn, p + '/' + n, '--depth', '1', '--shallow-submodules', '--jobs', '4'], done)
+    	run_proc(['git', 'clone', '--recursive', 'https://github.com/' + gitn, path, '--depth', '1', '--shallow-submodules', '--jobs', '4'], done)
     else:
-    	run_proc(['git', 'clone', 'https://github.com/' + gitn, p + '/' + n, '--depth', '1'], done)
+    	run_proc(['git', 'clone', 'https://github.com/' + gitn, path, '--depth', '1'], done)
 
 def restore_repo(p, n):
     if os.path.exists(p + '/' + n + '_backup'):
@@ -215,6 +251,16 @@ class ArmAddonStopButton(bpy.types.Operator):
         ArmAddonStartButton.running = False
         return {"FINISHED"}
 
+class ArmAddonInstallButton(bpy.types.Operator):
+    '''Install Armory SDK'''
+    bl_idname = "arm_addon.install"
+    bl_label = "Install SDK"
+    bl_description = "Install the latest development version"
+
+    def execute(self, context):
+        update_sdk(self,context)
+        return {"FINISHED"}
+
 class ArmAddonUpdateButton(bpy.types.Operator):
     '''Update Armory SDK'''
     bl_idname = "arm_addon.update"
@@ -222,32 +268,46 @@ class ArmAddonUpdateButton(bpy.types.Operator):
     bl_description = "Update to the latest development version"
 
     def execute(self, context):
-        sdk_path = get_sdk_path(context)
-        if sdk_path == "":
-            self.report({"ERROR"}, "Configure Armory SDK path first")
-            return {"CANCELLED"}
-        self.report({'INFO'}, 'Updating Armory SDK, check console for details.')
-        print('Armory (add-on v' + str(bl_info['version']) + '): Cloning [armory, iron, haxebullet, haxerecast, zui] repositories')
-        os.chdir(sdk_path)
+        update_sdk(self,context)
+        return {"FINISHED"}
+
+def update_sdk(self,context):
+    sdk_path = get_sdk_path(context)
+    if sdk_path == "":
+        self.report({"ERROR"}, "Configure Armory SDK path first")
+        return {"CANCELLED"}
+
+    self.report({'INFO'}, 'Updating Armory SDK, check console for details.')
+    print('Armory (add-on v' + str(bl_info['version']) + '): Cloning [armory, iron, haxebullet, haxerecast, zui] repositories')
+    if not os.path.exists(sdk_path):
+        os.makedirs(sdk_path)
+    os.chdir(sdk_path)
+    global repos_updated
+    global repos_total
+    global repos_done
+    repos_updated = 0
+    repos_done = 0
+    repos_total = 9
+    def done(error=0):
         global repos_updated
         global repos_total
-        repos_updated = 0
-        repos_total = 8
-        def done():
-            global repos_updated
-            global repos_total
+        global repos_done
+        repos_done += 1
+        if error == 0:
             repos_updated += 1
-            if repos_updated == repos_total:
-                print('Armory SDK updated, please restart Blender')
-        git_clone(done, sdk_path, 'armory3d/armory', 'armory')
-        git_clone(done, sdk_path, 'armory3d/iron', 'iron')
-        git_clone(done, sdk_path, 'armory3d/haxebullet', 'lib/haxebullet')
-        git_clone(done, sdk_path, 'armory3d/haxerecast', 'lib/haxerecast')
-        git_clone(done, sdk_path, 'armory3d/zui', 'lib/zui')
-        git_clone(done, sdk_path, 'armory3d/armory_tools', 'lib/armory_tools')
-        git_clone(done, sdk_path, 'armory3d/Krom_bin', 'Krom')
-        git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
-        return {"FINISHED"}
+        if repos_updated == repos_total:
+            print('Armory SDK updated, please restart Blender')
+        elif repos_done == repos_total:
+            self.report({"ERROR"}, "Failed updating Armory SDK, check console for details.")
+    git_clone(done, sdk_path, 'armory3d/armory', 'armory')
+    git_clone(done, sdk_path, 'armory3d/iron', 'iron')
+    git_clone(done, sdk_path, 'armory3d/haxebullet', 'lib/haxebullet')
+    git_clone(done, sdk_path, 'armory3d/haxerecast', 'lib/haxerecast')
+    git_clone(done, sdk_path, 'armory3d/zui', 'lib/zui')
+    git_clone(done, sdk_path, 'armory3d/armory_tools', 'lib/armory_tools')
+    git_clone(done, sdk_path, 'armory3d/Krom_bin', 'Krom')
+    git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
+    git_clone(done, sdk_path, 'armory3d/nodejs_bin/', 'nodejs')
 
 class ArmAddonRestoreButton(bpy.types.Operator):
     '''Update Armory SDK'''
@@ -292,6 +352,7 @@ def register():
     bpy.utils.register_class(ArmoryAddonPreferences)
     bpy.utils.register_class(ArmAddonStartButton)
     bpy.utils.register_class(ArmAddonStopButton)
+    bpy.utils.register_class(ArmAddonInstallButton)
     bpy.utils.register_class(ArmAddonUpdateButton)
     bpy.utils.register_class(ArmAddonRestoreButton)
     bpy.utils.register_class(ArmAddonHelpButton)
@@ -302,6 +363,7 @@ def unregister():
     bpy.utils.unregister_class(ArmoryAddonPreferences)
     bpy.utils.unregister_class(ArmAddonStartButton)
     bpy.utils.unregister_class(ArmAddonStopButton)
+    bpy.utils.register_class(ArmAddonInstallButton)
     bpy.utils.unregister_class(ArmAddonUpdateButton)
     bpy.utils.unregister_class(ArmAddonRestoreButton)
     bpy.utils.unregister_class(ArmAddonHelpButton)
