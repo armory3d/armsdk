@@ -305,7 +305,7 @@ def update_sdk(self,context):
     git_clone(done, sdk_path, 'armory3d/haxerecast', 'lib/haxerecast')
     git_clone(done, sdk_path, 'armory3d/zui', 'lib/zui')
     git_clone(done, sdk_path, 'armory3d/armory_tools', 'lib/armory_tools')
-    git_clone(done, sdk_path, 'armory3d/Krom_bin', 'Krom')
+    git_clone(done, sdk_path, 'armory3d/Kromx_bin', 'Krom')
     git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
     git_clone(done, sdk_path, 'armory3d/nodejs_bin/', 'nodejs')
 
