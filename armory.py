@@ -329,6 +329,7 @@ class ArmAddonRestoreButton(bpy.types.Operator):
         restore_repo(sdk_path, 'lib/armory_tools')
         restore_repo(sdk_path, 'Kha')
         restore_repo(sdk_path, 'Krom')
+        restore_repo(sdk_path, 'nodejs')
         self.report({'INFO'}, 'Restored stable version')
         return {"FINISHED"}
 
