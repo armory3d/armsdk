@@ -244,7 +244,7 @@ class ArmAddonStopButton(bpy.types.Operator):
     '''Stop Armory integration'''
     bl_idname = "arm_addon.stop"
     bl_label = "Stop"
- 
+
     def execute(self, context):
         import start
         start.unregister()
@@ -314,7 +314,7 @@ class ArmAddonRestoreButton(bpy.types.Operator):
     bl_idname = "arm_addon.restore"
     bl_label = "Restore SDK"
     bl_description = "Restore stable version"
- 
+
     def execute(self, context):
         sdk_path = get_sdk_path(context)
         if sdk_path == "":
@@ -337,7 +337,7 @@ class ArmAddonHelpButton(bpy.types.Operator):
     bl_idname = "arm_addon.help"
     bl_label = "Help"
     bl_description = "Git is required for Armory Updater to work"
- 
+
     def execute(self, context):
         webbrowser.open('https://github.com/armory3d/armory/wiki/gitversion')
         return {"FINISHED"}
