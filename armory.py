@@ -46,11 +46,11 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         bpy.ops.arm_addon.start()
 
-    def ide_path_update(self, context):
+    def ide_bin_update(self, context):
         if self.skip_update:
             return
         self.skip_update = True
-        self.ide_path = bpy.path.reduce_dirs([bpy.path.abspath(self.ide_path)])[0]
+        self.ide_bin = bpy.path.reduce_dirs([bpy.path.abspath(self.ide_bin)])[0]
 
     def ffmpeg_path_update(self, context):
         if self.skip_update or self.ffmpeg_path == '':
@@ -66,12 +66,13 @@ class ArmoryAddonPreferences(AddonPreferences):
 
     sdk_bundled: BoolProperty(name="Bundled SDK", default=True)
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
-    ide_path: StringProperty(name="VS Code Path", subtype="FILE_PATH", update=ide_path_update, default="", description="Path to VS Code or Kode Studio folder")
+    ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
     show_advanced: BoolProperty(name="Show Advanced", default=False)
     code_editor: EnumProperty(
-        items = [('kodestudio', 'VS Code', 'kodestudio'),
-                 ('default', 'System Default', 'default')],
-        name="Code Editor", default='kodestudio', description='Use this editor for editing scripts')
+        items = [('default', 'System Default', 'System Default'),
+                 ('kodestudio', 'VS Code | Kode Studio', 'Visual Studio Code or Kode Studio'),
+                 ('sublime', 'Sublime Text', 'Sublime Text')],
+        name="Code Editor", default='default', description='Use this editor for editing scripts')
     ui_scale: FloatProperty(name='UI Scale', description='Adjust UI scale for Armory tools', default=1.0, min=1.0, max=4.0)
     khamake_threads: IntProperty(name='Khamake Threads', description='Allow Khamake to spawn multiple processes for faster builds', default=4, min=1)
     compilation_server: BoolProperty(name='Compilation Server', description='Allow Haxe to create a local compilation server for faster builds', default=True)
@@ -123,7 +124,8 @@ class ArmoryAddonPreferences(AddonPreferences):
         if self.show_advanced:
             box = layout.box().column()
             box.prop(self, "code_editor")
-            box.prop(self, "ide_path")
+            if self.code_editor != "default":
+                box.prop(self, "ide_bin")
             box.prop(self, "renderdoc_path")
             box.prop(self, "ffmpeg_path")
             box.prop(self, "viewport_controls")
