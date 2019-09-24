@@ -71,7 +71,8 @@ class ArmoryAddonPreferences(AddonPreferences):
     code_editor: EnumProperty(
         items = [('default', 'System Default', 'System Default'),
                  ('kodestudio', 'VS Code | Kode Studio', 'Visual Studio Code or Kode Studio'),
-                 ('sublime', 'Sublime Text', 'Sublime Text')],
+                 ('sublime', 'Sublime Text', 'Sublime Text'),
+                 ('custom', "Custom", "Use a Custom Code Editor")],
         name="Code Editor", default='default', description='Use this editor for editing scripts')
     ui_scale: FloatProperty(name='UI Scale', description='Adjust UI scale for Armory tools', default=1.0, min=1.0, max=4.0)
     khamake_threads: IntProperty(name='Khamake Threads', description='Allow Khamake to spawn multiple processes for faster builds', default=4, min=1)
