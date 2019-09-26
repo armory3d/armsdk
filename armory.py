@@ -13,17 +13,18 @@ bl_info = {
 }
 
 import os
-import sys
-import stat
-import shutil
-import webbrowser
-import subprocess
-import threading
-import bpy
 import platform
-from bpy.types import Operator, AddonPreferences
-from bpy.props import *
+import shutil
+import stat
+import subprocess
+import sys
+import threading
+import webbrowser
+
+import bpy
 from bpy.app.handlers import persistent
+from bpy.props import *
+from bpy.types import Operator, AddonPreferences
 
 def get_os():
     s = platform.system()
