@@ -64,7 +64,6 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.skip_update = True
         self.renderdoc_path = bpy.path.reduce_dirs([bpy.path.abspath(self.renderdoc_path)])[0]
 
-    sdk_bundled: BoolProperty(name="Bundled SDK", default=True)
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
     ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
     show_advanced: BoolProperty(name="Show Advanced", default=False)
@@ -92,13 +91,8 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.skip_update = False
         layout = self.layout
         layout.label(text="Welcome to Armory!")
-        p = bundled_sdk_path()
-        if os.path.exists(p):
-            layout.prop(self, "sdk_bundled")
-            if not self.sdk_bundled:
-                layout.prop(self, "sdk_path")
-        else:
-            layout.prop(self, "sdk_path")
+
+        layout.prop(self, "sdk_path")
         sdk_path = get_sdk_path(context)
         if os.path.exists(sdk_path + '/armory') or os.path.exists(sdk_path + '/armory_backup'):
             sdk_exists = True
@@ -114,7 +108,6 @@ class ArmoryAddonPreferences(AddonPreferences):
         row = box.row(align=True)
         row.alignment = 'EXPAND'
         row.operator("arm_addon.help", icon="URL")
-        sdk_path = get_sdk_path(context)
         if sdk_exists:
             row.operator("arm_addon.update", icon="FILE_REFRESH")
         else:
@@ -137,21 +130,6 @@ class ArmoryAddonPreferences(AddonPreferences):
             box.prop(self, "legacy_shaders")
             box.prop(self, "relative_paths")
 
-def bundled_sdk_path():
-    if get_os() == 'mac':
-        # SDK on MacOS is located in .app folder due to security
-        p = bpy.app.binary_path
-        if p.endswith('Contents/MacOS/blender'):
-            return p[:-len('Contents/MacOS/blender')] + '/armsdk/'
-        else:
-            return p[:-len('Contents/MacOS/./blender')] + '/armsdk/'
-    elif get_os() == 'linux':
-        # /blender
-        return bpy.app.binary_path.rsplit('/', 1)[0] + '/armsdk/'
-    else:
-        # /blender.exe
-        return bpy.app.binary_path.replace('\\', '/').rsplit('/', 1)[0] + '/armsdk/'
-
 def get_fp():
     if bpy.data.filepath == '':
         return ''
@@ -162,11 +140,8 @@ def get_fp():
 def get_sdk_path(context):
     preferences = context.preferences
     addon_prefs = preferences.addons["armory"].preferences
-    p = bundled_sdk_path()
     if os.path.exists(get_fp() + '/armsdk'):
         return get_fp() + '/armsdk'
-    elif os.path.exists(p) and addon_prefs.sdk_bundled:
-        return p
     else:
         return addon_prefs.sdk_path
 
