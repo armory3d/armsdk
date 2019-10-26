@@ -343,7 +343,7 @@ def unregister():
     bpy.utils.unregister_class(ArmoryAddonPreferences)
     bpy.utils.unregister_class(ArmAddonStartButton)
     bpy.utils.unregister_class(ArmAddonStopButton)
-    bpy.utils.register_class(ArmAddonInstallButton)
+    bpy.utils.unregister_class(ArmAddonInstallButton)
     bpy.utils.unregister_class(ArmAddonUpdateButton)
     bpy.utils.unregister_class(ArmAddonRestoreButton)
     bpy.utils.unregister_class(ArmAddonHelpButton)
