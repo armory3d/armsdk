@@ -14,6 +14,7 @@ bl_info = {
 
 import os
 import platform
+import re
 import shutil
 import stat
 import subprocess
@@ -34,6 +35,34 @@ def get_os():
         return 'mac'
     else:
         return 'linux'
+
+def detect_sdk_path():
+    """Auto-detect the SDK path after Armory installation."""
+    # Write content of info window into internal text block
+    bpy.ops.ui.reports_to_textblock()
+
+    # Multiple versions of "Recent Reports" may exist, so traversing
+    # the text blocks in reversed order ensures we find the last one.
+    for text in reversed(bpy.data.texts):
+        if text.name.startswith("Recent Reports"):
+            # If armory was installed multiple times in this session,
+            # use the latest log entry.
+            match = re.findall(r"^Info: Modules Installed .* from '(.*\\armory.py)' into", text.as_string(), re.MULTILINE)
+
+            print("MATCH:", match)
+            if match:
+                source_path = match[-1]
+
+                preferences = bpy.context.preferences
+                addon_prefs = preferences.addons["armory"].preferences
+
+                # Do not overwrite the SDK path (this method gets
+                # called after each registration, not after
+                # installation only)
+                if addon_prefs.sdk_path == "":
+                    addon_prefs.sdk_path = os.path.dirname(source_path)
+
+            break
 
 class ArmoryAddonPreferences(AddonPreferences):
     bl_idname = __name__
@@ -250,7 +279,7 @@ class ArmAddonUpdateButton(bpy.types.Operator):
         update_sdk(self,context)
         return {"FINISHED"}
 
-def update_sdk(self,context):
+def update_sdk(self, context):
     sdk_path = get_sdk_path(context)
     if sdk_path == "":
         self.report({"ERROR"}, "Configure Armory SDK path first")
@@ -328,6 +357,9 @@ def on_load_post(context):
         return
     bpy.ops.arm_addon.start()
 
+def on_register_post():
+    detect_sdk_path()
+
 def register():
     bpy.utils.register_class(ArmoryAddonPreferences)
     bpy.utils.register_class(ArmAddonStartButton)
@@ -337,6 +369,9 @@ def register():
     bpy.utils.register_class(ArmAddonRestoreButton)
     bpy.utils.register_class(ArmAddonHelpButton)
     bpy.app.handlers.load_post.append(on_load_post)
+
+    # Hack to avoid _RestrictContext
+    bpy.app.timers.register(on_register_post, first_interval=0.1)
 
 def unregister():
     bpy.ops.arm_addon.stop()
