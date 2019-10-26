@@ -61,6 +61,8 @@ def detect_sdk_path():
                 if addon_prefs.sdk_path == "":
                     addon_prefs.sdk_path = os.path.dirname(source_path)
 
+            bpy.data.texts.remove(text)
+
             break
 
 class ArmoryAddonPreferences(AddonPreferences):
