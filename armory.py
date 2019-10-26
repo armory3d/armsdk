@@ -49,7 +49,6 @@ def detect_sdk_path():
             # use the latest log entry.
             match = re.findall(r"^Info: Modules Installed .* from '(.*\\armory.py)' into", text.as_string(), re.MULTILINE)
 
-            print("MATCH:", match)
             if match:
                 source_path = match[-1]
 
