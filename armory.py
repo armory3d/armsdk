@@ -370,7 +370,7 @@ def register():
     bpy.app.handlers.load_post.append(on_load_post)
 
     # Hack to avoid _RestrictContext
-    bpy.app.timers.register(on_register_post, first_interval=0.1)
+    bpy.app.timers.register(on_register_post, first_interval=0.01)
 
 def unregister():
     bpy.ops.arm_addon.stop()
