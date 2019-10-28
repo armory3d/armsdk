@@ -13,17 +13,19 @@ bl_info = {
 }
 
 import os
-import sys
-import stat
-import shutil
-import webbrowser
-import subprocess
-import threading
-import bpy
 import platform
-from bpy.types import Operator, AddonPreferences
-from bpy.props import *
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import threading
+import webbrowser
+
+import bpy
 from bpy.app.handlers import persistent
+from bpy.props import *
+from bpy.types import Operator, AddonPreferences
 
 def get_os():
     s = platform.system()
@@ -33,6 +35,35 @@ def get_os():
         return 'mac'
     else:
         return 'linux'
+
+def detect_sdk_path():
+    """Auto-detect the SDK path after Armory installation."""
+    # Write content of info window into internal text block
+    bpy.ops.ui.reports_to_textblock()
+
+    # Multiple versions of "Recent Reports" may exist, so traversing
+    # the text blocks in reversed order ensures we find the last one.
+    for text in reversed(bpy.data.texts):
+        if text.name.startswith("Recent Reports"):
+            # If armory was installed multiple times in this session,
+            # use the latest log entry.
+            match = re.findall(r"^Info: Modules Installed .* from '(.*\\armory.py)' into", text.as_string(), re.MULTILINE)
+
+            if match:
+                source_path = match[-1]
+
+                preferences = bpy.context.preferences
+                addon_prefs = preferences.addons["armory"].preferences
+
+                # Do not overwrite the SDK path (this method gets
+                # called after each registration, not after
+                # installation only)
+                if addon_prefs.sdk_path == "":
+                    addon_prefs.sdk_path = os.path.dirname(source_path)
+
+            bpy.data.texts.remove(text)
+
+            break
 
 class ArmoryAddonPreferences(AddonPreferences):
     bl_idname = __name__
@@ -64,7 +95,6 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.skip_update = True
         self.renderdoc_path = bpy.path.reduce_dirs([bpy.path.abspath(self.renderdoc_path)])[0]
 
-    sdk_bundled: BoolProperty(name="Bundled SDK", default=True)
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
     ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
     show_advanced: BoolProperty(name="Show Advanced", default=False)
@@ -92,13 +122,8 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.skip_update = False
         layout = self.layout
         layout.label(text="Welcome to Armory!")
-        p = bundled_sdk_path()
-        if os.path.exists(p):
-            layout.prop(self, "sdk_bundled")
-            if not self.sdk_bundled:
-                layout.prop(self, "sdk_path")
-        else:
-            layout.prop(self, "sdk_path")
+
+        layout.prop(self, "sdk_path")
         sdk_path = get_sdk_path(context)
         if os.path.exists(sdk_path + '/armory') or os.path.exists(sdk_path + '/armory_backup'):
             sdk_exists = True
@@ -114,7 +139,6 @@ class ArmoryAddonPreferences(AddonPreferences):
         row = box.row(align=True)
         row.alignment = 'EXPAND'
         row.operator("arm_addon.help", icon="URL")
-        sdk_path = get_sdk_path(context)
         if sdk_exists:
             row.operator("arm_addon.update", icon="FILE_REFRESH")
         else:
@@ -137,21 +161,6 @@ class ArmoryAddonPreferences(AddonPreferences):
             box.prop(self, "legacy_shaders")
             box.prop(self, "relative_paths")
 
-def bundled_sdk_path():
-    if get_os() == 'mac':
-        # SDK on MacOS is located in .app folder due to security
-        p = bpy.app.binary_path
-        if p.endswith('Contents/MacOS/blender'):
-            return p[:-len('Contents/MacOS/blender')] + '/armsdk/'
-        else:
-            return p[:-len('Contents/MacOS/./blender')] + '/armsdk/'
-    elif get_os() == 'linux':
-        # /blender
-        return bpy.app.binary_path.rsplit('/', 1)[0] + '/armsdk/'
-    else:
-        # /blender.exe
-        return bpy.app.binary_path.replace('\\', '/').rsplit('/', 1)[0] + '/armsdk/'
-
 def get_fp():
     if bpy.data.filepath == '':
         return ''
@@ -162,11 +171,8 @@ def get_fp():
 def get_sdk_path(context):
     preferences = context.preferences
     addon_prefs = preferences.addons["armory"].preferences
-    p = bundled_sdk_path()
     if os.path.exists(get_fp() + '/armsdk'):
         return get_fp() + '/armsdk'
-    elif os.path.exists(p) and addon_prefs.sdk_bundled:
-        return p
     else:
         return addon_prefs.sdk_path
 
@@ -274,7 +280,7 @@ class ArmAddonUpdateButton(bpy.types.Operator):
         update_sdk(self,context)
         return {"FINISHED"}
 
-def update_sdk(self,context):
+def update_sdk(self, context):
     sdk_path = get_sdk_path(context)
     if sdk_path == "":
         self.report({"ERROR"}, "Configure Armory SDK path first")
@@ -352,6 +358,9 @@ def on_load_post(context):
         return
     bpy.ops.arm_addon.start()
 
+def on_register_post():
+    detect_sdk_path()
+
 def register():
     bpy.utils.register_class(ArmoryAddonPreferences)
     bpy.utils.register_class(ArmAddonStartButton)
@@ -362,12 +371,15 @@ def register():
     bpy.utils.register_class(ArmAddonHelpButton)
     bpy.app.handlers.load_post.append(on_load_post)
 
+    # Hack to avoid _RestrictContext
+    bpy.app.timers.register(on_register_post, first_interval=0.01)
+
 def unregister():
     bpy.ops.arm_addon.stop()
     bpy.utils.unregister_class(ArmoryAddonPreferences)
     bpy.utils.unregister_class(ArmAddonStartButton)
     bpy.utils.unregister_class(ArmAddonStopButton)
-    bpy.utils.register_class(ArmAddonInstallButton)
+    bpy.utils.unregister_class(ArmAddonInstallButton)
     bpy.utils.unregister_class(ArmAddonUpdateButton)
     bpy.utils.unregister_class(ArmAddonRestoreButton)
     bpy.utils.unregister_class(ArmAddonHelpButton)
