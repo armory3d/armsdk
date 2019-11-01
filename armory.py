@@ -47,7 +47,7 @@ def detect_sdk_path():
         if text.name.startswith("Recent Reports"):
             # If armory was installed multiple times in this session,
             # use the latest log entry.
-            match = re.findall(r"^Info: Modules Installed .* from '(.*\\armory.py)' into", text.as_string(), re.MULTILINE)
+            match = re.findall(r"^Info: Modules Installed .* from '(.*armory.py)' into", text.as_string(), re.MULTILINE)
 
             if match:
                 source_path = match[-1]
