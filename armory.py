@@ -38,32 +38,32 @@ def get_os():
 
 def detect_sdk_path():
     """Auto-detect the SDK path after Armory installation."""
-    # Write content of info window into internal text block
-    bpy.ops.ui.reports_to_textblock()
+    # Do not overwrite the SDK path (this method gets
+    # called after each registration, not after
+    # installation only)
+    preferences = bpy.context.preferences
+    addon_prefs = preferences.addons["armory"].preferences
+    if addon_prefs.sdk_path != "":
+        return
 
-    # Multiple versions of "Recent Reports" may exist, so traversing
-    # the text blocks in reversed order ensures we find the last one.
-    for text in reversed(bpy.data.texts):
-        if text.name.startswith("Recent Reports"):
-            # If armory was installed multiple times in this session,
-            # use the latest log entry.
-            match = re.findall(r"^Info: Modules Installed .* from '(.*armory.py)' into", text.as_string(), re.MULTILINE)
+    win = bpy.context.window_manager.windows[0]
+    area = win.screen.areas[0]
+    area_type = area.type
+    area.type = "INFO"
+    override = bpy.context.copy()
+    override['window'] = win
+    override['screen'] = win.screen
+    override['area'] = win.screen.areas[0]
+    bpy.ops.info.select_all(override, action='SELECT')
+    bpy.ops.info.report_copy(override)
+    area.type = area_type
+    clipboard = bpy.context.window_manager.clipboard
 
-            if match:
-                source_path = match[-1]
-
-                preferences = bpy.context.preferences
-                addon_prefs = preferences.addons["armory"].preferences
-
-                # Do not overwrite the SDK path (this method gets
-                # called after each registration, not after
-                # installation only)
-                if addon_prefs.sdk_path == "":
-                    addon_prefs.sdk_path = os.path.dirname(source_path)
-
-            bpy.data.texts.remove(text)
-
-            break
+    # If armory was installed multiple times in this session,
+    # use the latest log entry.
+    match = re.findall(r"^Modules Installed .* from '(.*armory.py)' into", clipboard, re.MULTILINE)
+    if match:
+        addon_prefs.sdk_path = os.path.dirname(match[-1])
 
 class ArmoryAddonPreferences(AddonPreferences):
     bl_idname = __name__
@@ -218,9 +218,9 @@ def git_clone(done, p, gitn, n, recursive=False):
     if os.path.exists(path):
         shutil.rmtree(path, onerror=remove_readonly)
     if recursive:
-    	run_proc(['git', 'clone', '--recursive', 'https://github.com/' + gitn, path, '--depth', '1', '--shallow-submodules', '--jobs', '4'], done)
+        run_proc(['git', 'clone', '--recursive', 'https://github.com/' + gitn, path, '--depth', '1', '--shallow-submodules', '--jobs', '4'], done)
     else:
-    	run_proc(['git', 'clone', 'https://github.com/' + gitn, path, '--depth', '1'], done)
+        run_proc(['git', 'clone', 'https://github.com/' + gitn, path, '--depth', '1'], done)
 
 def restore_repo(p, n):
     if os.path.exists(p + '/' + n + '_backup'):
