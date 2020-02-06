@@ -19,6 +19,7 @@
 -D arm_physics_soft
 -D arm_deferred
 -D arm_csm
+-D arm_ui
 -D rp_hdr
 -D rp_renderer=Deferred
 -D rp_shadowmap
