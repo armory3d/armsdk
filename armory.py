@@ -192,10 +192,8 @@ def run_proc(cmd, done=None):
     except OSError as err:
         if done != None:
             done(1)
-        print("Failed running command: " + str(cmd).replace('[', '').replace(']', '').replace(',','').replace("'",'') + '\n')
-        if err.errno == 2:
-            print("Make sure git is installed: https://git-scm.com/downloads")
-        elif err.errno == 12:
+        print("Running command:", *cmd, "\n")
+        if err.errno == 12:
             print("Make sure there is enough space for the SDK (at least 500mb)")
         elif err.errno == 13:
             print("Permission denied, try modifying the permission of the sdk folder")
@@ -204,8 +202,8 @@ def run_proc(cmd, done=None):
     except Exception as err:
         if done != None:
             done(1)
-        print("Failed running: " + str(cmd).replace('[', '').replace(']', '').replace(',','').replace("'",'') + '\n')
-        print("error: " + str(err) + '\n')
+        print("Running command:", *cmd, "\n")
+        print("error:", str(err), "\n")
     else:
         threading.Thread(target=fn, args=(p, done)).start()
 
@@ -222,6 +220,18 @@ def git_clone(done, p, gitn, n, recursive=False):
     else:
         run_proc(['git', 'clone', 'https://github.com/' + gitn, path, '--depth', '1'], done)
 
+def git_test():
+    print('Testing if git is working...')
+    try:
+        p = subprocess.Popen(['git','--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output, _ = p.communicate()
+    except (OSError, Exception) as exception:
+        print(str(exception))
+    else:
+        if re.match("git version [0-9]+.[0-9]+.[0-9]+", output.decode('utf-8')):
+            print('Test succeeded.')
+            return True
+    return False
 def restore_repo(p, n):
     if os.path.exists(p + '/' + n + '_backup'):
         if os.path.exists(p + '/' + n):
@@ -239,8 +249,11 @@ class ArmAddonStartButton(bpy.types.Operator):
         if sdk_path == "":
             print("Configure Armory SDK path first")
             return {"CANCELLED"}
-
-        scripts_path = sdk_path + "/armory/blender/"
+        armory_path = sdk_path + "/armory/"
+        if not os.path.exists(armory_path):
+            print("Armory load error: 'armory' folder not found in SDK path. Please make sure the SDK path is correct or that the SDK was downloaded correctly.")
+            return {"CANCELLED"}
+        scripts_path = armory_path + "blender/"
         sys.path.append(scripts_path)
         local_sdk = os.path.exists(get_fp() + '/armsdk')
         import start
@@ -255,6 +268,10 @@ class ArmAddonStopButton(bpy.types.Operator):
     bl_label = "Stop"
 
     def execute(self, context):
+        sdk_path = get_sdk_path(context)
+        scripts_path = sdk_path + "/armory/blender/"
+        if not os.path.exists(scripts_path):
+            return {"CANCELLED"}
         import start
         start.unregister()
         ArmAddonStartButton.running = False
@@ -267,7 +284,7 @@ class ArmAddonInstallButton(bpy.types.Operator):
     bl_description = "Download and set up the latest development version"
 
     def execute(self, context):
-        update_sdk(self,context)
+        download_sdk(self, context)
         return {"FINISHED"}
 
 class ArmAddonUpdateButton(bpy.types.Operator):
@@ -277,20 +294,24 @@ class ArmAddonUpdateButton(bpy.types.Operator):
     bl_description = "Update to the latest development version"
 
     def execute(self, context):
-        update_sdk(self,context)
+        download_sdk(self, context)
         return {"FINISHED"}
 
-def update_sdk(self, context):
+def download_sdk(self, context):
     sdk_path = get_sdk_path(context)
     if sdk_path == "":
         self.report({"ERROR"}, "Configure Armory SDK path first")
         return {"CANCELLED"}
 
-    self.report({'INFO'}, 'Updating Armory SDK, check console for details.')
+    self.report({'INFO'}, 'Downloading Armory SDK, check console for details.')
     print('Armory (add-on v' + str(bl_info['version']) + '): Cloning [armory, iron, haxebullet, haxerecast, zui] repositories')
     if not os.path.exists(sdk_path):
         os.makedirs(sdk_path)
     os.chdir(sdk_path)
+    if not git_test():
+        print("Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly.")
+        self.report({"ERROR"}, "Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly.")
+        return {"CANCELLED"}
     global repos_updated
     global repos_total
     global repos_done
@@ -305,9 +326,9 @@ def update_sdk(self, context):
         if error == 0:
             repos_updated += 1
         if repos_updated == repos_total:
-            print('Armory SDK updated, please restart Blender')
+            print('Armory SDK download completed, please restart Blender..')
         elif repos_done == repos_total:
-            self.report({"ERROR"}, "Failed updating Armory SDK, check console for details.")
+            self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
     git_clone(done, sdk_path, 'armory3d/armory', 'armory')
     git_clone(done, sdk_path, 'armory3d/iron', 'iron')
     git_clone(done, sdk_path, 'armory3d/haxebullet', 'lib/haxebullet')
