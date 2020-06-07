@@ -56,5 +56,7 @@
 -D kha
 -D kha_version=1810
 -D kha_project_name=untitled
+--no-output
+-dce no
 -js krom\krom.js
 -main Main
