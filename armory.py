@@ -117,6 +117,90 @@ class ArmoryAddonPreferences(AddonPreferences):
                ('azerty', 'azerty', 'azerty')],
         name="Viewport Controls", default='qwerty', description='Viewport camera mode controls')
     skip_update: BoolProperty(name="", default=False)
+    # Debug Console
+    debug_console_auto: BoolProperty(name="Enable Debug Console for new project", description="Enable Debug Console for new project", default=False)
+    # Shortcuts
+    items_enum_keyboard = [ ('192', '~', 'TILDE'),
+                ('219', '[', 'OPEN BRACKET'),
+                ('221', ']', 'CLOSE BRACKET'),
+                ('192', '`', 'BACK QUOTE'),
+                ('57', '(', 'OPEN BRACKET'),
+                ('48', ')', 'CLOSE BRACKET'),
+                ('56', '*', 'MULTIPLY'),
+                ('190', '.', 'PERIOD'),
+                ('188', ',', 'COMMA', ),
+                ('191', '/', 'SLASH'),
+                ('65', 'A', 'A'),
+                ('66', 'B', 'B'),
+                ('67', 'C', 'C'),
+                ('68', 'D', 'D'),
+                ('69', 'E', 'E'),
+                ('70', 'F', 'F'),
+                ('71', 'G', 'G'),
+                ('72', 'H', 'H'),
+                ('73', 'I', 'I'),
+                ('74', 'J', 'J'),
+                ('75', 'K', 'K'),
+                ('76', 'L', 'L'),
+                ('77', 'M', 'M'),
+                ('78', 'N', 'N'),
+                ('79', 'O', 'O'),
+                ('80', 'P', 'P'),
+                ('81', 'Q', 'Q'),
+                ('82', 'R', 'R'),
+                ('83', 'S', 'S'),
+                ('84', 'T', 'T'),
+                ('85', 'U', 'U'),
+                ('86', 'V', 'V'),
+                ('87', 'W', 'W'),
+                ('88', 'X', 'X'),
+                ('89', 'Y', 'Y'),
+                ('90', 'Z', 'Z'),
+                ('48', '0', '0'),
+                ('49', '1', '1'),
+                ('50', '2', '2'),
+                ('51', '3', '3'),
+                ('52', '4', '4'),
+                ('53', '5', '5'),
+                ('54', '6', '6'),
+                ('55', '7', '7'),
+                ('56', '8', '8'),
+                ('57', '9', '9'),
+                ('32', 'SPACE', 'SPACE'),
+                ('8', 'BACKSPACE', 'BACKSPACE'),
+                ('9', 'TAB', 'TAB'),
+                ('13', 'ENTER', 'ENTER'),
+                ('16', 'SHIFT', 'SHIFT'),
+                ('17', 'CONTROL', 'CONTROL'),
+                ('18', 'ALT', 'ALT'),
+                ('27', 'ESCAPE', 'ESCAPE'),
+                ('46', 'DELETE', 'DELETE'),
+                ('33', 'PAGE UP', 'PAGE UP'),
+                ('34', 'PAGE DOWN', 'PAGE DOWN'),
+                ('38', 'UP', 'UP'),
+                ('39', 'RIGHT', 'RIGHT'),
+                ('37', 'LEFT', 'LEFT'),
+                ('40', 'DOWN', 'DOWN'),
+                ('96', 'NUMPAD 0', 'NUMPAD 0'),
+                ('97', 'NUMPAD 1', 'NUMPAD 1'),
+                ('98', 'NUMPAD 2', 'NUMPAD 2'),
+                ('99', 'NUMPAD 3', 'NUMPAD 3'),
+                ('100', 'NUMPAD 4', 'NUMPAD 4'),
+                ('101', 'NUMPAD 5', 'NUMPAD 5'),
+                ('102', 'NUMPAD 6', 'NUMPAD 6'),
+                ('103', 'NUMPAD 7', 'NUMPAD 7'),
+                ('104', 'NUMPAD 8', 'NUMPAD 8'),
+                ('106', 'NUMPAD *', 'NUMPAD *'),
+                ('110', 'NUMPAD /', 'NUMPAD /'),
+                ('107', 'NUMPAD +', 'NUMPAD +'),
+                ('108', 'NUMPAD -', 'NUMPAD -'),
+                ('109', 'NUMPAD .', 'NUMPAD .')]
+    debug_console_visible_sc: EnumProperty(items = items_enum_keyboard,
+        name="Visible / Invisible", description="Shortcut to display the console", default='192')    
+    debug_console_scale_in_sc: EnumProperty(items = items_enum_keyboard,
+        name="Scale In", description="Shortcut to scale in on the console", default='219')
+    debug_console_scale_out_sc: EnumProperty(items = items_enum_keyboard,
+        name="Scale Out", description="Shortcut to scale out on the console", default='221')
 
     def draw(self, context):
         self.skip_update = False
@@ -160,6 +244,14 @@ class ArmoryAddonPreferences(AddonPreferences):
             box.prop(self, "save_on_build")
             box.prop(self, "legacy_shaders")
             box.prop(self, "relative_paths")
+            # Debug Console
+            box.prop(self, "debug_console_auto")  
+            box = layout.box().column()  
+            box.label(text="Debug Console Shortcut")
+            box.label(text="Note: The settings will be applied if Debug Console is enabled in the project settings")
+            box.prop(self, "debug_console_visible_sc")
+            box.prop(self, "debug_console_scale_in_sc")
+            box.prop(self, "debug_console_scale_out_sc")
 
 def get_fp():
     if bpy.data.filepath == '':
@@ -232,6 +324,7 @@ def git_test():
             print('Test succeeded.')
             return True
     return False
+    
 def restore_repo(p, n):
     if os.path.exists(p + '/' + n + '_backup'):
         if os.path.exists(p + '/' + n):
