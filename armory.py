@@ -110,6 +110,7 @@ class ArmoryAddonPreferences(AddonPreferences):
     renderdoc_path: StringProperty(name="RenderDoc Path", description="Binary path", subtype="FILE_PATH", update=renderdoc_path_update, default="")
     ffmpeg_path: StringProperty(name="FFMPEG Path", description="Binary path", subtype="FILE_PATH", update=ffmpeg_path_update, default="")
     save_on_build: BoolProperty(name="Save on Build", description="Save .blend", default=False)
+    open_build_directory: BoolProperty(name="Open Build Directory After Publishing", description="Open the build directory after succesfully publishing the project", default=True)
     legacy_shaders: BoolProperty(name="Legacy Shaders", description="Attempt to compile shaders runnable on older hardware, use this for WebGL1 or GLES2 support in mobile render path", default=False)
     relative_paths: BoolProperty(name="Generate Relative Paths", description="Write relative paths in khafile", default=False)
     viewport_controls: EnumProperty(
@@ -196,11 +197,11 @@ class ArmoryAddonPreferences(AddonPreferences):
                 ('108', 'NUMPAD -', 'NUMPAD -'),
                 ('109', 'NUMPAD .', 'NUMPAD .')]
     debug_console_visible_sc: EnumProperty(items = items_enum_keyboard,
-        name="Visible / Invisible", description="Shortcut to display the console", default='192')    
+        name="Visible / Invisible Shortcut", description="Shortcut to display the console", default='192')
     debug_console_scale_in_sc: EnumProperty(items = items_enum_keyboard,
-        name="Scale In", description="Shortcut to scale in on the console", default='219')
+        name="Scale In Shortcut", description="Shortcut to scale in on the console", default='219')
     debug_console_scale_out_sc: EnumProperty(items = items_enum_keyboard,
-        name="Scale Out", description="Shortcut to scale out on the console", default='221')
+        name="Scale Out Shortcut", description="Shortcut to scale out on the console", default='221')
 
     def draw(self, context):
         self.skip_update = False
@@ -239,16 +240,20 @@ class ArmoryAddonPreferences(AddonPreferences):
             box.prop(self, "ffmpeg_path")
             box.prop(self, "viewport_controls")
             box.prop(self, "ui_scale")
-            box.prop(self, "khamake_threads")
-            box.prop(self, "compilation_server")
-            box.prop(self, "save_on_build")
             box.prop(self, "legacy_shaders")
             box.prop(self, "relative_paths")
-            # Debug Console
-            box.prop(self, "debug_console_auto")  
-            box = layout.box().column()  
-            box.label(text="Debug Console Shortcut")
-            box.label(text="Note: The settings will be applied if Debug Console is enabled in the project settings")
+
+            box = layout.box().column()
+            box.label(text="Build Preferences")
+            box.prop(self, "khamake_threads")
+            box.prop(self, "compilation_server")
+            box.prop(self, "open_build_directory")
+            box.prop(self, "save_on_build")
+
+            box = layout.box().column()
+            box.label(text="Debug Console")
+            box.prop(self, "debug_console_auto")
+            box.label(text="Note: The following settings will be applied if Debug Console is enabled in the project settings")
             box.prop(self, "debug_console_visible_sc")
             box.prop(self, "debug_console_scale_in_sc")
             box.prop(self, "debug_console_scale_out_sc")
@@ -324,7 +329,7 @@ def git_test():
             print('Test succeeded.')
             return True
     return False
-    
+
 def restore_repo(p, n):
     if os.path.exists(p + '/' + n + '_backup'):
         if os.path.exists(p + '/' + n):
