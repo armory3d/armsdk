@@ -94,6 +94,12 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.renderdoc_path = bpy.path.reduce_dirs([bpy.path.abspath(self.renderdoc_path)])[0]
+    
+    def android_sdk_path_update(self, context):
+        if self.skip_update:
+            return
+        self.skip_update = True
+        self.android_sdk_root_path = bpy.path.reduce_dirs([bpy.path.abspath(self.android_sdk_root_path)])[0]
 
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
     ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
@@ -110,7 +116,7 @@ class ArmoryAddonPreferences(AddonPreferences):
     renderdoc_path: StringProperty(name="RenderDoc Path", description="Binary path", subtype="FILE_PATH", update=renderdoc_path_update, default="")
     ffmpeg_path: StringProperty(name="FFMPEG Path", description="Binary path", subtype="FILE_PATH", update=ffmpeg_path_update, default="")
     save_on_build: BoolProperty(name="Save on Build", description="Save .blend", default=False)
-    open_build_directory: BoolProperty(name="Open Build Directory After Publishing", description="Open the build directory after succesfully publishing the project", default=True)
+    open_build_directory: BoolProperty(name="Open Build Directory After Publishing", description="Open the build directory after successfully publishing the project", default=True)
     legacy_shaders: BoolProperty(name="Legacy Shaders", description="Attempt to compile shaders runnable on older hardware, use this for WebGL1 or GLES2 support in mobile render path", default=False)
     relative_paths: BoolProperty(name="Generate Relative Paths", description="Write relative paths in khafile", default=False)
     viewport_controls: EnumProperty(
@@ -202,6 +208,9 @@ class ArmoryAddonPreferences(AddonPreferences):
         name="Scale In Shortcut", description="Shortcut to scale in on the console", default='219')
     debug_console_scale_out_sc: EnumProperty(items = items_enum_keyboard,
         name="Scale Out Shortcut", description="Shortcut to scale out on the console", default='221')
+    # Android Settings
+    android_sdk_root_path: StringProperty(name="Android SDK Path", description="Path to the Android SDK installation directory", default="", subtype="FILE_PATH", update=android_sdk_path_update)
+    android_open_build_apk_directory: BoolProperty(name="Open Build APK Directory", description="Open the build APK directory after successfully assemble", default=True)
 
     def draw(self, context):
         self.skip_update = False
@@ -257,6 +266,11 @@ class ArmoryAddonPreferences(AddonPreferences):
             box.prop(self, "debug_console_visible_sc")
             box.prop(self, "debug_console_scale_in_sc")
             box.prop(self, "debug_console_scale_out_sc")
+
+            box = layout.box().column()
+            box.label(text="Android Settings")
+            box.prop(self, "android_sdk_root_path")
+            box.prop(self, "android_open_build_apk_directory")
 
 def get_fp():
     if bpy.data.filepath == '':
