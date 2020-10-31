@@ -94,7 +94,7 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.renderdoc_path = bpy.path.reduce_dirs([bpy.path.abspath(self.renderdoc_path)])[0]
-    
+
     def android_sdk_path_update(self, context):
         if self.skip_update:
             return
@@ -102,8 +102,16 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.android_sdk_root_path = bpy.path.reduce_dirs([bpy.path.abspath(self.android_sdk_root_path)])[0]
 
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
-    ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
+
     show_advanced: BoolProperty(name="Show Advanced", default=False)
+    tabs: EnumProperty(
+        items=[('general', 'General', 'General Settings'),
+               ('build', 'Build Preferences', 'Settings related to building the game'),
+               ('debugconsole', 'Debug Console', 'Settings related to the in-game debug console'),
+               ('dev', 'Developer Settings', 'Settings for Armory developers')],
+        name='Tabs', default='general', description='Choose the settings page you want to see')
+
+    ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
     code_editor: EnumProperty(
         items = [('default', 'System Default', 'System Default'),
                  ('kodestudio', 'VS Code | Kode Studio', 'Visual Studio Code or Kode Studio'),
@@ -212,6 +220,11 @@ class ArmoryAddonPreferences(AddonPreferences):
     android_sdk_root_path: StringProperty(name="Android SDK Path", description="Path to the Android SDK installation directory", default="", subtype="FILE_PATH", update=android_sdk_path_update)
     android_open_build_apk_directory: BoolProperty(name="Open Build APK Directory", description="Open the build APK directory after successfully assemble", default=True)
 
+    profile_exporter: BoolProperty(
+        name="Exporter Profiling", default=False,
+        description="Run profiling when exporting the scene. A file named 'profile_exporter.prof' with the results will"
+                    " be saved into the SDK directory and can be opened with tools such as SnakeViz")
+
     def draw(self, context):
         self.skip_update = False
         layout = self.layout
@@ -239,38 +252,58 @@ class ArmoryAddonPreferences(AddonPreferences):
             row.operator("arm_addon.install", icon="IMPORT")
         row.operator("arm_addon.restore")
         box.label(text="Check console for download progress. Please restart Blender after successful SDK update.")
-        layout.prop(self, "show_advanced")
+
+        col = layout.column(align=(not self.show_advanced))
+        col.prop(self, "show_advanced")
         if self.show_advanced:
-            box = layout.box().column()
-            box.prop(self, "code_editor")
-            if self.code_editor != "default":
-                box.prop(self, "ide_bin")
-            box.prop(self, "renderdoc_path")
-            box.prop(self, "ffmpeg_path")
-            box.prop(self, "viewport_controls")
-            box.prop(self, "ui_scale")
-            box.prop(self, "legacy_shaders")
-            box.prop(self, "relative_paths")
+            box_main = col.box()
 
-            box = layout.box().column()
-            box.label(text="Build Preferences")
-            box.prop(self, "khamake_threads")
-            box.prop(self, "compilation_server")
-            box.prop(self, "open_build_directory")
-            box.prop(self, "save_on_build")
+            # Use a row to expand the prop horizontally
+            row = box_main.row()
+            row.scale_y = 1.2
+            row.ui_units_y = 1.4
+            row.prop(self, "tabs", expand=True)
 
-            box = layout.box().column()
-            box.label(text="Debug Console")
-            box.prop(self, "debug_console_auto")
-            box.label(text="Note: The following settings will be applied if Debug Console is enabled in the project settings")
-            box.prop(self, "debug_console_visible_sc")
-            box.prop(self, "debug_console_scale_in_sc")
-            box.prop(self, "debug_console_scale_out_sc")
+            box = box_main.column()
 
-            box = layout.box().column()
-            box.label(text="Android Settings")
-            box.prop(self, "android_sdk_root_path")
-            box.prop(self, "android_open_build_apk_directory")
+            if self.tabs == "general":
+                box.prop(self, "code_editor")
+                if self.code_editor != "default":
+                    box.prop(self, "ide_bin")
+                box.prop(self, "renderdoc_path")
+                box.prop(self, "ffmpeg_path")
+                box.prop(self, "viewport_controls")
+                box.prop(self, "ui_scale")
+                box.prop(self, "legacy_shaders")
+                box.prop(self, "relative_paths")
+
+            elif self.tabs == "build":
+                box.label(text="Build Preferences")
+                box.prop(self, "khamake_threads")
+                box.prop(self, "compilation_server")
+                box.prop(self, "open_build_directory")
+                box.prop(self, "save_on_build")
+
+                box = box_main.column()
+                box.label(text="Android Settings")
+                box.prop(self, "android_sdk_root_path")
+                box.prop(self, "android_open_build_apk_directory")
+
+            elif self.tabs == "debugconsole":
+                box.label(text="Debug Console")
+                box.prop(self, "debug_console_auto")
+                box.label(text="Note: The following settings will be applied if Debug Console is enabled in the project settings")
+                box.prop(self, "debug_console_visible_sc")
+                box.prop(self, "debug_console_scale_in_sc")
+                box.prop(self, "debug_console_scale_out_sc")
+
+            elif self.tabs == "dev":
+                box.label(icon="ERROR", text="Warning: The following settings are meant for Armory developers and")
+                box.label(icon="BLANK1", text="might slow down Armory. Only change them if you know what you are doing.")
+                box.separator()
+
+                box.prop(self, "profile_exporter")
+
 
 def get_fp():
     if bpy.data.filepath == '':
