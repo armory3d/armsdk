@@ -7,7 +7,7 @@ bl_info = {
     "description": "3D Game Engine for Blender",
     "author": "Armory3D.org",
     "version": (2020, 10, 0),
-    "blender": (2, 81, 0),
+    "blender": (2, 83, 0),
     "wiki_url": "https://github.com/armory3d/armory/wiki",
     "tracker_url": "https://github.com/armory3d/armory/issues"
 }
@@ -229,6 +229,11 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.skip_update = False
         layout = self.layout
         layout.label(text="Welcome to Armory!")
+
+        # Compare version Blender and Armory (major, minor)
+        if bpy.app.version[0] != 2 or bpy.app.version[1] != 83:
+            box = layout.box().column()
+            box.label(text="Warning: For Armory to work correctly, you need Blender 2.83 LTS.")
 
         layout.prop(self, "sdk_path")
         sdk_path = get_sdk_path(context)
