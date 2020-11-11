@@ -220,10 +220,14 @@ class ArmoryAddonPreferences(AddonPreferences):
     android_sdk_root_path: StringProperty(name="Android SDK Path", description="Path to the Android SDK installation directory", default="", subtype="FILE_PATH", update=android_sdk_path_update)
     android_open_build_apk_directory: BoolProperty(name="Open Build APK Directory", description="Open the build APK directory after successfully assemble", default=True)
 
+    # Developer options
     profile_exporter: BoolProperty(
         name="Exporter Profiling", default=False,
         description="Run profiling when exporting the scene. A file named 'profile_exporter.prof' with the results will"
                     " be saved into the SDK directory and can be opened with tools such as SnakeViz")
+    khamake_debug: BoolProperty(
+        name="Set Khamake Flag: --debug", default=False,
+        description="Set the --debug flag when running Khamake. Useful for debugging HLSL shaders with RenderDoc")
 
     def draw(self, context):
         self.skip_update = False
@@ -308,6 +312,7 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.separator()
 
                 box.prop(self, "profile_exporter")
+                box.prop(self, "khamake_debug")
 
 
 def get_fp():
