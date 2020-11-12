@@ -100,6 +100,12 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.android_sdk_root_path = bpy.path.reduce_dirs([bpy.path.abspath(self.android_sdk_root_path)])[0]
+    
+    def android_apk_copy_update(self, context):
+        if self.skip_update:
+            return
+        self.skip_update = True
+        self.android_apk_copy_path = bpy.path.reduce_dirs([bpy.path.abspath(self.android_apk_copy_path)])[0]
 
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
 
@@ -219,6 +225,8 @@ class ArmoryAddonPreferences(AddonPreferences):
     # Android Settings
     android_sdk_root_path: StringProperty(name="Android SDK Path", description="Path to the Android SDK installation directory", default="", subtype="FILE_PATH", update=android_sdk_path_update)
     android_open_build_apk_directory: BoolProperty(name="Open Build APK Directory", description="Open the build APK directory after successfully assemble", default=True)
+    android_apk_copy_path: StringProperty(name="Copy APK To Folder", description="Copy the APK file to the folder after build", default="", subtype="FILE_PATH", update=android_apk_copy_update)
+    android_apk_copy_open_directory: BoolProperty(name="Open Directory After Copy", description="Open the directory after copy the APK file", default=False)
 
     profile_exporter: BoolProperty(
         name="Exporter Profiling", default=False,
@@ -293,6 +301,8 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.label(text="Android Settings")
                 box.prop(self, "android_sdk_root_path")
                 box.prop(self, "android_open_build_apk_directory")
+                box.prop(self, "android_apk_copy_path")
+                box.prop(self, "android_apk_copy_open_directory")
 
             elif self.tabs == "debugconsole":
                 box.label(text="Debug Console")
