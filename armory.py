@@ -65,6 +65,20 @@ def detect_sdk_path():
     if match:
         addon_prefs.sdk_path = os.path.dirname(match[-1])
 
+def get_link_web_server(self):
+    return self.get('link_web_server', 'http://localhost/')
+
+def set_link_web_server(self, value):
+    regex = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    if re.match(regex, value) is not None:
+        self['link_web_server'] = value
+
 class ArmoryAddonPreferences(AddonPreferences):
     bl_idname = __name__
 
@@ -106,6 +120,12 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.android_apk_copy_path = bpy.path.reduce_dirs([bpy.path.abspath(self.android_apk_copy_path)])[0]
+
+    def html5_copy_path_update(self, context):
+        if self.skip_update:
+            return
+        self.skip_update = True
+        self.html5_copy_path = bpy.path.reduce_dirs([bpy.path.abspath(self.html5_copy_path)])[0]
 
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
 
@@ -227,6 +247,9 @@ class ArmoryAddonPreferences(AddonPreferences):
     android_open_build_apk_directory: BoolProperty(name="Open Build APK Directory", description="Open the build APK directory after successfully assemble", default=True)
     android_apk_copy_path: StringProperty(name="Copy APK To Folder", description="Copy the APK file to the folder after build", default="", subtype="FILE_PATH", update=android_apk_copy_update)
     android_apk_copy_open_directory: BoolProperty(name="Open Directory After Copy", description="Open the directory after copy the APK file", default=False)
+    # HTML5 Settings
+    html5_copy_path: StringProperty(name="HTML5 Copy Path", description="Path to copy project after successfully publish", default="", subtype="FILE_PATH", update=html5_copy_path_update)
+    link_web_server: StringProperty(name="Url To Web Server", description="Url to the web server that runs the local server", default="http://localhost/", set=set_link_web_server, get=get_link_web_server)
 
     # Developer options
     profile_exporter: BoolProperty(
@@ -307,6 +330,11 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.prop(self, "android_open_build_apk_directory")
                 box.prop(self, "android_apk_copy_path")
                 box.prop(self, "android_apk_copy_open_directory")
+
+                box = box_main.column()
+                box.label(text="HTML5 Settings")
+                box.prop(self, "html5_copy_path")
+                box.prop(self, "link_web_server")
 
             elif self.tabs == "debugconsole":
                 box.label(text="Debug Console")
