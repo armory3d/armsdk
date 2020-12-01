@@ -6,7 +6,7 @@ bl_info = {
     "location": "Properties -> Render -> Armory Player",
     "description": "3D Game Engine for Blender",
     "author": "Armory3D.org",
-    "version": (2020, 11, 0),
+    "version": (2020, 12, 0),
     "blender": (2, 83, 0),
     "wiki_url": "https://github.com/armory3d/armory/wiki",
     "tracker_url": "https://github.com/armory3d/armory/issues"
@@ -114,7 +114,7 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.android_sdk_root_path = bpy.path.reduce_dirs([bpy.path.abspath(self.android_sdk_root_path)])[0]
-    
+
     def android_apk_copy_update(self, context):
         if self.skip_update:
             return
