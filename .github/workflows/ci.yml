@@ -1,0 +1,21 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.2
+      - name: Setup
+        run: haxelib install dox
+      - name: Build documentation
+        run: |
+          cd api
+          haxe api.hxml -xml build/api.xml -D doc-gen
+          haxe dox.hxml
