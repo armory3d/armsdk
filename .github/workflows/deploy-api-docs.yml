@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
+    inputs:
+      haxe-version:
+        description: 'Haxe version to use'
+        required: true
+        default: 4.2.3
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,7 +20,7 @@ jobs:
           submodules: recursive
       - uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: 4.2.2
+          haxe-version: ${{ github.event.inputs.haxe-version }}
       - name: Setup
         run: haxelib install dox
       - name: Build documentation
