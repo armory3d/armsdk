@@ -441,7 +441,7 @@ def restore_repo(p, n):
 
 
 class ArmAddonInstallButton(bpy.types.Operator):
-    '''Download and set up Armory SDK'''
+    """Download and set up Armory SDK"""
     bl_idname = "arm_addon.install"
     bl_label = "Download and set up SDK"
     bl_description = "Download and set up the latest development version"
@@ -451,7 +451,7 @@ class ArmAddonInstallButton(bpy.types.Operator):
         return {"FINISHED"}
 
 class ArmAddonUpdateButton(bpy.types.Operator):
-    '''Update Armory SDK'''
+    """Update Armory SDK"""
     bl_idname = "arm_addon.update"
     bl_label = "Update SDK"
     bl_description = "Update to the latest development version"
@@ -503,8 +503,9 @@ def download_sdk(self, context):
     git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
     git_clone(done, sdk_path, 'armory3d/nodejs_bin/', 'nodejs')
 
+
 class ArmAddonRestoreButton(bpy.types.Operator):
-    '''Update Armory SDK'''
+    """Update Armory SDK"""
     bl_idname = "arm_addon.restore"
     bl_label = "Restore SDK"
     bl_description = "Restore stable version"
@@ -527,8 +528,9 @@ class ArmAddonRestoreButton(bpy.types.Operator):
         self.report({'INFO'}, 'Restored stable version')
         return {"FINISHED"}
 
+
 class ArmAddonHelpButton(bpy.types.Operator):
-    '''Updater help'''
+    """Updater help"""
     bl_idname = "arm_addon.help"
     bl_label = "Help"
     bl_description = "Git is required for Armory Updater to work"
