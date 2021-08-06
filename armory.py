@@ -8,7 +8,7 @@ bl_info = {
     "author": "Armory3D.org",
     "version": (2021, 7, 0),
     "blender": (2, 93, 0),
-    "wiki_url": "https://github.com/armory3d/armory/wiki",
+    "doc_url": "https://github.com/armory3d/armory/wiki",
     "tracker_url": "https://github.com/armory3d/armory/issues"
 }
 
