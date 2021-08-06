@@ -13,6 +13,7 @@ bl_info = {
 }
 
 import os
+from pathlib import Path
 import platform
 import re
 import shutil
@@ -488,6 +489,7 @@ def download_sdk(self, context):
         if error == 0:
             repos_updated += 1
         if repos_updated == repos_total:
+            update_armory_py(sdk_path)
             print('Armory SDK download completed, please restart Blender..')
         elif repos_done == repos_total:
             self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
@@ -536,6 +538,20 @@ class ArmAddonHelpButton(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def update_armory_py(sdk_path, force_relink=False):
+    """Ensure that armory.py is a symlink to the current SDK to reflect
+    changes made to the SDK.
+
+    The sdk_path parameter must be a valid SDK path.
+    """
+    arm_module_file = Path(sys.modules['armory'].__file__)
+    if not arm_module_file.is_symlink() or force_relink:
+        # We can safely replace armory.py because Python is
+        # operating on a cached armory.py module
+        arm_module_file.unlink(missing_ok=True)
+        arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
+
+
 def start_armory(sdk_path: str):
     global is_running
     global last_scripts_path
@@ -554,6 +570,8 @@ def start_armory(sdk_path: str):
     scripts_path = os.path.join(armory_path, "blender")
     sys.path.append(scripts_path)
     last_scripts_path = scripts_path
+
+    update_armory_py(sdk_path, force_relink=True)
 
     import start
     if last_sdk_path != "":
