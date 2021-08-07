@@ -8,11 +8,12 @@ bl_info = {
     "author": "Armory3D.org",
     "version": (2021, 8, 0),
     "blender": (2, 93, 0),
-    "wiki_url": "https://github.com/armory3d/armory/wiki",
+    "doc_url": "https://github.com/armory3d/armory/wiki",
     "tracker_url": "https://github.com/armory3d/armory/issues"
 }
 
 import os
+from pathlib import Path
 import platform
 import re
 import shutil
@@ -27,6 +28,13 @@ from bpy.app.handlers import persistent
 from bpy.props import *
 from bpy.types import Operator, AddonPreferences
 
+# Keep the value of these globals after addon reload
+if "is_running" not in locals():
+    is_running = False
+    last_sdk_path = ""
+    last_scripts_path = ""
+
+
 def get_os():
     s = platform.system()
     if s == 'Windows':
@@ -35,6 +43,7 @@ def get_os():
         return 'mac'
     else:
         return 'linux'
+
 
 def detect_sdk_path():
     """Auto-detect the SDK path after Armory installation."""
@@ -79,6 +88,7 @@ def set_link_web_server(self, value):
     if re.match(regex, value) is not None:
         self['link_web_server'] = value
 
+
 class ArmoryAddonPreferences(AddonPreferences):
     bl_idname = __name__
 
@@ -87,9 +97,7 @@ class ArmoryAddonPreferences(AddonPreferences):
             return
         self.skip_update = True
         self.sdk_path = bpy.path.reduce_dirs([bpy.path.abspath(self.sdk_path)])[0] + '/'
-        if ArmAddonStartButton.running:
-            return
-        bpy.ops.arm_addon.start()
+        restart_armory(context)
 
     def ide_bin_update(self, context):
         if self.skip_update:
@@ -360,7 +368,7 @@ def get_fp():
     s.pop()
     return os.path.sep.join(s)
 
-def get_sdk_path(context):
+def get_sdk_path(context) -> str:
     preferences = context.preferences
     addon_prefs = preferences.addons["armory"].preferences
     if os.path.exists(get_fp() + '/armsdk'):
@@ -431,47 +439,9 @@ def restore_repo(p, n):
             shutil.rmtree(p + '/' + n, onerror=remove_readonly)
         os.rename(p + '/' + n + '_backup', p + '/' + n)
 
-class ArmAddonStartButton(bpy.types.Operator):
-    '''Start Armory integration'''
-    bl_idname = "arm_addon.start"
-    bl_label = "Start"
-    running = False
-
-    def execute(self, context):
-        sdk_path = get_sdk_path(context)
-        if sdk_path == "":
-            print("Configure Armory SDK path first")
-            return {"CANCELLED"}
-        armory_path = sdk_path + "/armory/"
-        if not os.path.exists(armory_path):
-            print("Armory load error: 'armory' folder not found in SDK path. Please make sure the SDK path is correct or that the SDK was downloaded correctly.")
-            return {"CANCELLED"}
-        scripts_path = armory_path + "blender/"
-        sys.path.append(scripts_path)
-        local_sdk = os.path.exists(get_fp() + '/armsdk')
-        import start
-        start.register(local_sdk=local_sdk)
-        ArmAddonStartButton.running = True
-
-        return {"FINISHED"}
-
-class ArmAddonStopButton(bpy.types.Operator):
-    '''Stop Armory integration'''
-    bl_idname = "arm_addon.stop"
-    bl_label = "Stop"
-
-    def execute(self, context):
-        sdk_path = get_sdk_path(context)
-        scripts_path = sdk_path + "/armory/blender/"
-        if not os.path.exists(scripts_path):
-            return {"CANCELLED"}
-        import start
-        start.unregister()
-        ArmAddonStartButton.running = False
-        return {"FINISHED"}
 
 class ArmAddonInstallButton(bpy.types.Operator):
-    '''Download and set up Armory SDK'''
+    """Download and set up Armory SDK"""
     bl_idname = "arm_addon.install"
     bl_label = "Download and set up SDK"
     bl_description = "Download and set up the latest development version"
@@ -481,7 +451,7 @@ class ArmAddonInstallButton(bpy.types.Operator):
         return {"FINISHED"}
 
 class ArmAddonUpdateButton(bpy.types.Operator):
-    '''Update Armory SDK'''
+    """Update Armory SDK"""
     bl_idname = "arm_addon.update"
     bl_label = "Update SDK"
     bl_description = "Update to the latest development version"
@@ -519,6 +489,7 @@ def download_sdk(self, context):
         if error == 0:
             repos_updated += 1
         if repos_updated == repos_total:
+            update_armory_py(sdk_path)
             print('Armory SDK download completed, please restart Blender..')
         elif repos_done == repos_total:
             self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
@@ -532,8 +503,9 @@ def download_sdk(self, context):
     git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
     git_clone(done, sdk_path, 'armory3d/nodejs_bin/', 'nodejs')
 
+
 class ArmAddonRestoreButton(bpy.types.Operator):
-    '''Update Armory SDK'''
+    """Update Armory SDK"""
     bl_idname = "arm_addon.restore"
     bl_label = "Restore SDK"
     bl_description = "Restore stable version"
@@ -556,8 +528,9 @@ class ArmAddonRestoreButton(bpy.types.Operator):
         self.report({'INFO'}, 'Restored stable version')
         return {"FINISHED"}
 
+
 class ArmAddonHelpButton(bpy.types.Operator):
-    '''Updater help'''
+    """Updater help"""
     bl_idname = "arm_addon.help"
     bl_label = "Help"
     bl_description = "Git is required for Armory Updater to work"
@@ -566,19 +539,98 @@ class ArmAddonHelpButton(bpy.types.Operator):
         webbrowser.open('https://github.com/armory3d/armory/wiki/gitversion')
         return {"FINISHED"}
 
+
+def update_armory_py(sdk_path, force_relink=False):
+    """Ensure that armory.py is a symlink to the current SDK to reflect
+    changes made to the SDK.
+
+    The sdk_path parameter must be a valid SDK path.
+    """
+    arm_module_file = Path(sys.modules['armory'].__file__)
+    if not arm_module_file.is_symlink() or force_relink:
+        # We can safely replace armory.py because Python is
+        # operating on a cached armory.py module
+        arm_module_file.unlink(missing_ok=True)
+        arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
+
+
+def start_armory(sdk_path: str):
+    global is_running
+    global last_scripts_path
+    global last_sdk_path
+
+    if sdk_path == "":
+        return
+
+    armory_path = os.path.join(sdk_path, "armory")
+    if not os.path.exists(armory_path):
+        print("Armory load error: 'armory' folder not found in SDK path."
+              " Please make sure the SDK path is correct or that the SDK"
+              " was downloaded correctly.")
+        return
+
+    scripts_path = os.path.join(armory_path, "blender")
+    sys.path.append(scripts_path)
+    last_scripts_path = scripts_path
+
+    update_armory_py(sdk_path, force_relink=True)
+
+    import start
+    if last_sdk_path != "":
+        import importlib
+        start = importlib.reload(start)
+
+    use_local_sdk = os.path.exists(os.path.join(get_fp(), 'armsdk'))
+    start.register(local_sdk=use_local_sdk)
+
+    last_sdk_path = sdk_path
+    is_running = True
+
+    print(f'Running Armory SDK from {sdk_path}')
+
+
+def stop_armory():
+    global is_running
+
+    if not is_running:
+        return
+
+    import start
+    start.unregister()
+
+    sys.path.remove(last_scripts_path)
+    is_running = False
+
+
+def restart_armory(context):
+    sdk_path = get_sdk_path(context)
+
+    if sdk_path == "":
+        if not is_running:
+            print("Configure Armory SDK path first")
+        stop_armory()
+        return
+
+    # Only restart Armory when the SDK path changed or it isn't running,
+    # otherwise we can keep the currently running instance
+    if last_sdk_path != sdk_path or not is_running:
+        stop_armory()
+        assert not is_running
+        start_armory(sdk_path)
+
+
 @persistent
 def on_load_post(context):
-    if ArmAddonStartButton.running:
-        return
-    bpy.ops.arm_addon.start()
+    restart_armory(bpy.context)  # context is None, use bpy.context instead
+
 
 def on_register_post():
     detect_sdk_path()
+    restart_armory(bpy.context)
+
 
 def register():
     bpy.utils.register_class(ArmoryAddonPreferences)
-    bpy.utils.register_class(ArmAddonStartButton)
-    bpy.utils.register_class(ArmAddonStopButton)
     bpy.utils.register_class(ArmAddonInstallButton)
     bpy.utils.register_class(ArmAddonUpdateButton)
     bpy.utils.register_class(ArmAddonRestoreButton)
@@ -588,16 +640,16 @@ def register():
     # Hack to avoid _RestrictContext
     bpy.app.timers.register(on_register_post, first_interval=0.01)
 
+
 def unregister():
-    bpy.ops.arm_addon.stop()
+    stop_armory()
     bpy.utils.unregister_class(ArmoryAddonPreferences)
-    bpy.utils.unregister_class(ArmAddonStartButton)
-    bpy.utils.unregister_class(ArmAddonStopButton)
     bpy.utils.unregister_class(ArmAddonInstallButton)
     bpy.utils.unregister_class(ArmAddonUpdateButton)
     bpy.utils.unregister_class(ArmAddonRestoreButton)
     bpy.utils.unregister_class(ArmAddonHelpButton)
     bpy.app.handlers.load_post.remove(on_load_post)
+
 
 if __name__ == "__main__":
     register()
