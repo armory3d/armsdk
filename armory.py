@@ -258,6 +258,8 @@ class ArmoryAddonPreferences(AddonPreferences):
     # HTML5 Settings
     html5_copy_path: StringProperty(name="HTML5 Copy Path", description="Path to copy project after successfully publish", default="", subtype="FILE_PATH", update=html5_copy_path_update)
     link_web_server: StringProperty(name="Url To Web Server", description="Url to the web server that runs the local server", default="http://localhost/", set=set_link_web_server, get=get_link_web_server)
+    html5_server_port: IntProperty(name="Web Server Port", description="The port number of the local web server", default=8040, min=1024, max=65535)
+    html5_server_log: BoolProperty(name="Enable Http Log", description="Enable logging of http requests to local web server", default=True)
 
     # Developer options
     profile_exporter: BoolProperty(
@@ -343,6 +345,8 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.label(text="HTML5 Settings")
                 box.prop(self, "html5_copy_path")
                 box.prop(self, "link_web_server")
+                box.prop(self, "html5_server_port")
+                box.prop(self, "html5_server_log")
 
             elif self.tabs == "debugconsole":
                 box.label(text="Debug Console")
