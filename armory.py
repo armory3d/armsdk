@@ -159,6 +159,7 @@ class ArmoryAddonPreferences(AddonPreferences):
     ffmpeg_path: StringProperty(name="FFMPEG Path", description="Binary path", subtype="FILE_PATH", update=ffmpeg_path_update, default="")
     save_on_build: BoolProperty(name="Save on Build", description="Save .blend", default=False)
     open_build_directory: BoolProperty(name="Open Build Directory After Publishing", description="Open the build directory after successfully publishing the project", default=True)
+    open_script_error: BoolProperty(name="Open Script Error", description="Open the script at error position if compiling fails", default=True)
     legacy_shaders: BoolProperty(name="Legacy Shaders", description="Attempt to compile shaders runnable on older hardware, use this for WebGL1 or GLES2 support in mobile render path", default=False)
     relative_paths: BoolProperty(name="Generate Relative Paths", description="Write relative paths in khafile", default=False)
     viewport_controls: EnumProperty(
@@ -332,6 +333,7 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.prop(self, "khamake_threads")
                 box.prop(self, "compilation_server")
                 box.prop(self, "open_build_directory")
+                box.prop(self, "open_script_error")
                 box.prop(self, "save_on_build")
 
                 box = box_main.column()
