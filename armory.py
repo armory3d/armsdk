@@ -148,7 +148,8 @@ class ArmoryAddonPreferences(AddonPreferences):
     ide_bin: StringProperty(name="Code Editor Executable", subtype="FILE_PATH", update=ide_bin_update, default="", description="Path to your editor's executable file")
     code_editor: EnumProperty(
         items = [('default', 'System Default', 'System Default'),
-                 ('kodestudio', 'VS Code | Kode Studio', 'Visual Studio Code or Kode Studio'),
+                 ('kodestudio', 'Kode Studio', 'Kode Studio'),
+                 ('code', 'VS Code', 'Visual Studio Code'),
                  ('sublime', 'Sublime Text', 'Sublime Text'),
                  ('custom', "Custom", "Use a Custom Code Editor")],
         name="Code Editor", default='default', description='Use this editor for editing scripts')
