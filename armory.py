@@ -555,7 +555,17 @@ def update_armory_py(sdk_path, force_relink=False):
         # We can safely replace armory.py because Python is
         # operating on a cached armory.py module
         arm_module_file.unlink(missing_ok=True)
-        arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
+        try:
+            arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
+        except OSError as err:
+            if hasattr(err, 'winerror'):
+                if err.winerror == 1314:  # ERROR_PRIVILEGE_NOT_HELD
+                    # Manually copy the file to "simulate" symlink
+                    shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
+                else:
+                    raise err
+            else:
+                raise err
 
 
 def start_armory(sdk_path: str):
