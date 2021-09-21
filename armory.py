@@ -269,6 +269,9 @@ class ArmoryAddonPreferences(AddonPreferences):
     khamake_debug: BoolProperty(
         name="Set Khamake Flag: --debug", default=False,
         description="Set the --debug flag when running Khamake. Useful for debugging HLSL shaders with RenderDoc")
+    haxe_times: BoolProperty(
+        name="Set Haxe Flag: --times", default=False,
+        description="Set the --times flag when running Haxe.")
 
     def draw(self, context):
         self.skip_update = False
@@ -363,6 +366,7 @@ class ArmoryAddonPreferences(AddonPreferences):
 
                 box.prop(self, "profile_exporter")
                 box.prop(self, "khamake_debug")
+                box.prop(self, "haxe_times")
 
 
 def get_fp():
