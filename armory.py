@@ -565,28 +565,17 @@ class ArmAddonHelpButton(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def update_armory_py(sdk_path, force_relink=False):
-    """Ensure that armory.py is a symlink to the current SDK to reflect
-    changes made to the SDK.
-
-    The sdk_path parameter must be a valid SDK path.
+def update_armory_py(sdk_path: str):
+    """Ensure that armory.py is up to date by copying it from the
+    current SDK path. Note that because the current version of armory.py
+    is already loaded as a Python module, this change lags one add-on
+    reload behind.
     """
     arm_module_file = Path(sys.modules['armory'].__file__)
-    if not arm_module_file.is_symlink() or force_relink:
-        # We can safely replace armory.py because Python is
-        # operating on a cached armory.py module
-        arm_module_file.unlink(missing_ok=True)
-        try:
-            arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
-        except OSError as err:
-            if hasattr(err, 'winerror'):
-                if err.winerror == 1314:  # ERROR_PRIVILEGE_NOT_HELD
-                    # Manually copy the file to "simulate" symlink
-                    shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
-                else:
-                    raise err
-            else:
-                raise err
+    # We can safely replace armory.py because Python is operating on a
+    # cached armory.py module
+    arm_module_file.unlink(missing_ok=True)
+    shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
 
 
 def start_armory(sdk_path: str):
@@ -608,7 +597,7 @@ def start_armory(sdk_path: str):
     sys.path.append(scripts_path)
     last_scripts_path = scripts_path
 
-    update_armory_py(sdk_path, force_relink=True)
+    update_armory_py(sdk_path)
 
     import start
     if last_sdk_path != "":
