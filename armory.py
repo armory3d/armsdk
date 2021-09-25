@@ -22,6 +22,7 @@ import stat
 import subprocess
 import sys
 import threading
+import typing
 import webbrowser
 
 import bpy
@@ -281,6 +282,11 @@ class ArmoryAddonPreferences(AddonPreferences):
     haxe_times: BoolProperty(
         name="Set Haxe Flag: --times", default=False,
         description="Set the --times flag when running Haxe.")
+    use_armory_py_symlink: BoolProperty(
+        name="Symlink armory.py", default=False,
+        description=("Automatically symlink the registered armory.py with the original armory.py from the SDK for faster"
+                     " development. Warning: this will invalidate the installation if the SDK is removed")
+    )
 
     def draw(self, context):
         self.skip_update = False
@@ -374,13 +380,23 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.prop(self, "debug_console_scale_out_sc")
 
             elif self.tabs == "dev":
-                box.label(icon="ERROR", text="Warning: The following settings are meant for Armory developers and")
-                box.label(icon="BLANK1", text="might slow down Armory. Only change them if you know what you are doing.")
+                col = box.column(align=True)
+                col.label(icon="ERROR", text="Warning: The following settings are meant for Armory developers and might slow")
+                col.label(icon="BLANK1", text="down Armory or make it unstable. Only change them if you know what you are doing.")
                 box.separator()
 
-                box.prop(self, "profile_exporter")
-                box.prop(self, "khamake_debug")
-                box.prop(self, "haxe_times")
+                col = box.column(align=True)
+                col.prop(self, "profile_exporter")
+                col.prop(self, "khamake_debug")
+                col.prop(self, "haxe_times")
+
+                col = box.column(align=True)
+                col.prop(self, "use_armory_py_symlink")
+
+    @staticmethod
+    def get_prefs() -> 'ArmoryAddonPreferences':
+        preferences = bpy.context.preferences
+        return typing.cast(ArmoryAddonPreferences, preferences.addons["armory"].preferences)
 
 
 def get_fp():
@@ -584,17 +600,33 @@ class ArmAddonHelpButton(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def update_armory_py(sdk_path: str):
+def update_armory_py(sdk_path: str, force_relink=False):
     """Ensure that armory.py is up to date by copying it from the
-    current SDK path. Note that because the current version of armory.py
+    current SDK path (if 'use_armory_py_symlink' is true, a symlink is
+    created instead). Note that because the current version of armory.py
     is already loaded as a Python module, this change lags one add-on
     reload behind.
     """
+    addon_prefs = ArmoryAddonPreferences.get_prefs()
     arm_module_file = Path(sys.modules['armory'].__file__)
-    # We can safely replace armory.py because Python is operating on a
-    # cached armory.py module
-    arm_module_file.unlink(missing_ok=True)
-    shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
+
+    if addon_prefs.use_armory_py_symlink:
+        if not arm_module_file.is_symlink() or force_relink:
+            arm_module_file.unlink(missing_ok=True)
+            try:
+                arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
+            except OSError as err:
+                if hasattr(err, 'winerror'):
+                    if err.winerror == 1314:  # ERROR_PRIVILEGE_NOT_HELD
+                        # Manually copy the file to "simulate" symlink
+                        shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
+                    else:
+                        raise err
+                else:
+                    raise err
+    else:
+        arm_module_file.unlink(missing_ok=True)
+        shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
 
 
 def start_armory(sdk_path: str):
@@ -616,7 +648,7 @@ def start_armory(sdk_path: str):
     sys.path.append(scripts_path)
     last_scripts_path = scripts_path
 
-    update_armory_py(sdk_path)
+    update_armory_py(sdk_path, force_relink=True)
 
     import start
     if last_sdk_path != "":
