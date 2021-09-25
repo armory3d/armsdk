@@ -12,6 +12,7 @@ bl_info = {
     "tracker_url": "https://github.com/armory3d/armory/issues"
 }
 
+from enum import IntEnum
 import os
 from pathlib import Path
 import platform
@@ -28,11 +29,19 @@ from bpy.app.handlers import persistent
 from bpy.props import *
 from bpy.types import Operator, AddonPreferences
 
+
+class SDKSource(IntEnum):
+    PREFS = 0
+    LOCAL = 1
+    ENV_VAR = 2
+
+
 # Keep the value of these globals after addon reload
 if "is_running" not in locals():
     is_running = False
     last_sdk_path = ""
     last_scripts_path = ""
+    sdk_source = SDKSource.PREFS
 
 
 def get_os():
@@ -291,8 +300,13 @@ class ArmoryAddonPreferences(AddonPreferences):
             sdk_exists = False
         if not sdk_exists:
             layout.label(text="The directory will be created.")
-        else:
-            layout.label(text="")
+        elif sdk_source != SDKSource.PREFS:
+            row = layout.row()
+            row.alert = True
+            if sdk_source == SDKSource.LOCAL:
+                row.label(text=f'Using local SDK from {sdk_path}')
+            elif sdk_source == SDKSource.ENV_VAR:
+                row.label(text=f'Using SDK from "ARMSDK" environment variable: {sdk_path}')
         box = layout.box().column()
         box.label(text="Armory SDK Manager")
         box.label(text="Note: Development version may run unstable!")
@@ -388,14 +402,19 @@ def get_sdk_path(context: bpy.context) -> str:
         2. Local SDK in /armsdk relative to the current file.
         3. The SDK path specified in the add-on preferences.
     """
+    global sdk_source
+
     sdk_envvar = os.environ.get('ARMSDK')
     if sdk_envvar is not None and os.path.isabs(sdk_envvar) and os.path.isdir(sdk_envvar) and os.path.exists(sdk_envvar):
+        sdk_source = SDKSource.ENV_VAR
         return sdk_envvar
 
     local_sdk = get_fp() + '/armsdk'
     if os.path.exists(local_sdk):
+        sdk_source = SDKSource.LOCAL
         return local_sdk
 
+    sdk_source = SDKSource.PREFS
     preferences = context.preferences
     addon_prefs = preferences.addons["armory"].preferences
     return addon_prefs.sdk_path
