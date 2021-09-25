@@ -376,13 +376,30 @@ def get_fp():
     s.pop()
     return os.path.sep.join(s)
 
-def get_sdk_path(context) -> str:
+
+def get_sdk_path(context: bpy.context) -> str:
+    """Returns the absolute path of the currently set Armory SDK.
+
+    The path is read from the following sources in that priority (the
+    topmost source is used if valid):
+        1. Environment variable 'ARMSDK' (must be an absolute path).
+           Useful to temporarily override the SDK path, e.g. when
+           running from the command line.
+        2. Local SDK in /armsdk relative to the current file.
+        3. The SDK path specified in the add-on preferences.
+    """
+    sdk_envvar = os.environ.get('ARMSDK')
+    if sdk_envvar is not None and os.path.isabs(sdk_envvar) and os.path.isdir(sdk_envvar) and os.path.exists(sdk_envvar):
+        return sdk_envvar
+
+    local_sdk = get_fp() + '/armsdk'
+    if os.path.exists(local_sdk):
+        return local_sdk
+
     preferences = context.preferences
     addon_prefs = preferences.addons["armory"].preferences
-    if os.path.exists(get_fp() + '/armsdk'):
-        return get_fp() + '/armsdk'
-    else:
-        return addon_prefs.sdk_path
+    return addon_prefs.sdk_path
+
 
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
