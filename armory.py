@@ -12,6 +12,7 @@ bl_info = {
     "tracker_url": "https://github.com/armory3d/armory/issues"
 }
 
+from enum import IntEnum
 import os
 from pathlib import Path
 import platform
@@ -21,6 +22,7 @@ import stat
 import subprocess
 import sys
 import threading
+import typing
 import webbrowser
 
 import bpy
@@ -28,11 +30,19 @@ from bpy.app.handlers import persistent
 from bpy.props import *
 from bpy.types import Operator, AddonPreferences
 
+
+class SDKSource(IntEnum):
+    PREFS = 0
+    LOCAL = 1
+    ENV_VAR = 2
+
+
 # Keep the value of these globals after addon reload
 if "is_running" not in locals():
     is_running = False
     last_sdk_path = ""
     last_scripts_path = ""
+    sdk_source = SDKSource.PREFS
 
 
 def get_os():
@@ -269,6 +279,14 @@ class ArmoryAddonPreferences(AddonPreferences):
     khamake_debug: BoolProperty(
         name="Set Khamake Flag: --debug", default=False,
         description="Set the --debug flag when running Khamake. Useful for debugging HLSL shaders with RenderDoc")
+    haxe_times: BoolProperty(
+        name="Set Haxe Flag: --times", default=False,
+        description="Set the --times flag when running Haxe.")
+    use_armory_py_symlink: BoolProperty(
+        name="Symlink armory.py", default=False,
+        description=("Automatically symlink the registered armory.py with the original armory.py from the SDK for faster"
+                     " development. Warning: this will invalidate the installation if the SDK is removed")
+    )
 
     def draw(self, context):
         self.skip_update = False
@@ -288,8 +306,13 @@ class ArmoryAddonPreferences(AddonPreferences):
             sdk_exists = False
         if not sdk_exists:
             layout.label(text="The directory will be created.")
-        else:
-            layout.label(text="")
+        elif sdk_source != SDKSource.PREFS:
+            row = layout.row()
+            row.alert = True
+            if sdk_source == SDKSource.LOCAL:
+                row.label(text=f'Using local SDK from {sdk_path}')
+            elif sdk_source == SDKSource.ENV_VAR:
+                row.label(text=f'Using SDK from "ARMSDK" environment variable: {sdk_path}')
         box = layout.box().column()
         box.label(text="Armory SDK Manager")
         box.label(text="Note: Development version may run unstable!")
@@ -357,12 +380,23 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.prop(self, "debug_console_scale_out_sc")
 
             elif self.tabs == "dev":
-                box.label(icon="ERROR", text="Warning: The following settings are meant for Armory developers and")
-                box.label(icon="BLANK1", text="might slow down Armory. Only change them if you know what you are doing.")
+                col = box.column(align=True)
+                col.label(icon="ERROR", text="Warning: The following settings are meant for Armory developers and might slow")
+                col.label(icon="BLANK1", text="down Armory or make it unstable. Only change them if you know what you are doing.")
                 box.separator()
 
-                box.prop(self, "profile_exporter")
-                box.prop(self, "khamake_debug")
+                col = box.column(align=True)
+                col.prop(self, "profile_exporter")
+                col.prop(self, "khamake_debug")
+                col.prop(self, "haxe_times")
+
+                col = box.column(align=True)
+                col.prop(self, "use_armory_py_symlink")
+
+    @staticmethod
+    def get_prefs() -> 'ArmoryAddonPreferences':
+        preferences = bpy.context.preferences
+        return typing.cast(ArmoryAddonPreferences, preferences.addons["armory"].preferences)
 
 
 def get_fp():
@@ -372,13 +406,35 @@ def get_fp():
     s.pop()
     return os.path.sep.join(s)
 
-def get_sdk_path(context) -> str:
+
+def get_sdk_path(context: bpy.context) -> str:
+    """Returns the absolute path of the currently set Armory SDK.
+
+    The path is read from the following sources in that priority (the
+    topmost source is used if valid):
+        1. Environment variable 'ARMSDK' (must be an absolute path).
+           Useful to temporarily override the SDK path, e.g. when
+           running from the command line.
+        2. Local SDK in /armsdk relative to the current file.
+        3. The SDK path specified in the add-on preferences.
+    """
+    global sdk_source
+
+    sdk_envvar = os.environ.get('ARMSDK')
+    if sdk_envvar is not None and os.path.isabs(sdk_envvar) and os.path.isdir(sdk_envvar) and os.path.exists(sdk_envvar):
+        sdk_source = SDKSource.ENV_VAR
+        return sdk_envvar
+
+    local_sdk = get_fp() + '/armsdk'
+    if os.path.exists(local_sdk):
+        sdk_source = SDKSource.LOCAL
+        return local_sdk
+
+    sdk_source = SDKSource.PREFS
     preferences = context.preferences
     addon_prefs = preferences.addons["armory"].preferences
-    if os.path.exists(get_fp() + '/armsdk'):
-        return get_fp() + '/armsdk'
-    else:
-        return addon_prefs.sdk_path
+    return addon_prefs.sdk_path
+
 
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
@@ -544,28 +600,33 @@ class ArmAddonHelpButton(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def update_armory_py(sdk_path, force_relink=False):
-    """Ensure that armory.py is a symlink to the current SDK to reflect
-    changes made to the SDK.
-
-    The sdk_path parameter must be a valid SDK path.
+def update_armory_py(sdk_path: str, force_relink=False):
+    """Ensure that armory.py is up to date by copying it from the
+    current SDK path (if 'use_armory_py_symlink' is true, a symlink is
+    created instead). Note that because the current version of armory.py
+    is already loaded as a Python module, this change lags one add-on
+    reload behind.
     """
+    addon_prefs = ArmoryAddonPreferences.get_prefs()
     arm_module_file = Path(sys.modules['armory'].__file__)
-    if not arm_module_file.is_symlink() or force_relink:
-        # We can safely replace armory.py because Python is
-        # operating on a cached armory.py module
-        arm_module_file.unlink(missing_ok=True)
-        try:
-            arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
-        except OSError as err:
-            if hasattr(err, 'winerror'):
-                if err.winerror == 1314:  # ERROR_PRIVILEGE_NOT_HELD
-                    # Manually copy the file to "simulate" symlink
-                    shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
+
+    if addon_prefs.use_armory_py_symlink:
+        if not arm_module_file.is_symlink() or force_relink:
+            arm_module_file.unlink(missing_ok=True)
+            try:
+                arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
+            except OSError as err:
+                if hasattr(err, 'winerror'):
+                    if err.winerror == 1314:  # ERROR_PRIVILEGE_NOT_HELD
+                        # Manually copy the file to "simulate" symlink
+                        shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
+                    else:
+                        raise err
                 else:
                     raise err
-            else:
-                raise err
+    else:
+        arm_module_file.unlink(missing_ok=True)
+        shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
 
 
 def start_armory(sdk_path: str):
