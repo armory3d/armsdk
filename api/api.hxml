@@ -35,6 +35,7 @@
 -D arm_noembed
 -D arm_soundcompress
 -D arm_skin
+-D arm_morph_target
 -D arm_particles
 -D sys_krom
 -D sys_g1
