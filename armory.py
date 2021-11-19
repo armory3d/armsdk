@@ -425,10 +425,12 @@ def get_sdk_path(context: bpy.context) -> str:
         sdk_source = SDKSource.ENV_VAR
         return sdk_envvar
 
-    local_sdk = get_fp() + '/armsdk'
-    if os.path.exists(local_sdk):
-        sdk_source = SDKSource.LOCAL
-        return local_sdk
+    fp = get_fp()
+    if fp != '':  # blend file is not saved
+        local_sdk = os.path.join(fp, 'armsdk')
+        if os.path.exists(local_sdk):
+            sdk_source = SDKSource.LOCAL
+            return local_sdk
 
     sdk_source = SDKSource.PREFS
     preferences = context.preferences
