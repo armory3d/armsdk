@@ -407,6 +407,16 @@ def get_fp():
     return os.path.sep.join(s)
 
 
+def same_path(path1: str, path2: str) -> bool:
+    """Compare whether two paths point to the same location."""
+    if os.path.exists(path1) and os.path.exists(path2):
+        return os.path.samefile(path1, path2)
+
+    p1 = os.path.realpath(os.path.normpath(os.path.normcase(path1)))
+    p2 = os.path.realpath(os.path.normpath(os.path.normcase(path2)))
+    return p1 == p2
+
+
 def get_sdk_path(context: bpy.context) -> str:
     """Returns the absolute path of the currently set Armory SDK.
 
@@ -425,10 +435,12 @@ def get_sdk_path(context: bpy.context) -> str:
         sdk_source = SDKSource.ENV_VAR
         return sdk_envvar
 
-    local_sdk = get_fp() + '/armsdk'
-    if os.path.exists(local_sdk):
-        sdk_source = SDKSource.LOCAL
-        return local_sdk
+    fp = get_fp()
+    if fp != '':  # blend file is not saved
+        local_sdk = os.path.join(fp, 'armsdk')
+        if os.path.exists(local_sdk):
+            sdk_source = SDKSource.LOCAL
+            return local_sdk
 
     sdk_source = SDKSource.PREFS
     preferences = context.preferences
@@ -688,7 +700,7 @@ def restart_armory(context):
 
     # Only restart Armory when the SDK path changed or it isn't running,
     # otherwise we can keep the currently running instance
-    if last_sdk_path != sdk_path or not is_running:
+    if not same_path(last_sdk_path, sdk_path) or not is_running:
         stop_armory()
         assert not is_running
         start_armory(sdk_path)
