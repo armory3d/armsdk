@@ -667,7 +667,7 @@ def start_armory(sdk_path: str):
         import importlib
         start = importlib.reload(start)
 
-    use_local_sdk = os.path.exists(os.path.join(get_fp(), 'armsdk'))
+    use_local_sdk = (sdk_source == SDKSource.LOCAL)
     start.register(local_sdk=use_local_sdk)
 
     last_sdk_path = sdk_path
@@ -690,6 +690,7 @@ def stop_armory():
 
 
 def restart_armory(context):
+    old_sdk_source = sdk_source
     sdk_path = get_sdk_path(context)
 
     if sdk_path == "":
@@ -700,7 +701,7 @@ def restart_armory(context):
 
     # Only restart Armory when the SDK path changed or it isn't running,
     # otherwise we can keep the currently running instance
-    if not same_path(last_sdk_path, sdk_path) or not is_running:
+    if not same_path(last_sdk_path, sdk_path) or sdk_source != old_sdk_source or not is_running:
         stop_armory()
         assert not is_running
         start_armory(sdk_path)
