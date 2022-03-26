@@ -2,7 +2,7 @@
 # https://github.com/armory3d/armory
 bl_info = {
     "name": "Armory",
-    "category": "Render",
+    "category": "Game Engine",
     "location": "Properties -> Render -> Armory Player",
     "description": "3D Game Engine for Blender",
     "author": "Armory3D.org",
