@@ -716,13 +716,24 @@ def on_register_post():
     detect_sdk_path()
     restart_armory(bpy.context)
 
+class ArmReloadBlenderAddon(bpy.types.Operator):
+    '''Create proxy from linked object'''
+    bl_idname = 'arm.reload_blender_addon'
+    bl_label = 'Armory Reload Blender Addon'
+    bl_description = 'Reloads the python components of armory'
+    def execute(self, context):
+        bpy.ops.preferences.addon_enable(module="armory")
+        return {'FINISHED'}
 
+global isHotReloading
+isHotReloading = False
 def register():
     bpy.utils.register_class(ArmoryAddonPreferences)
     bpy.utils.register_class(ArmAddonInstallButton)
     bpy.utils.register_class(ArmAddonUpdateButton)
     bpy.utils.register_class(ArmAddonRestoreButton)
     bpy.utils.register_class(ArmAddonHelpButton)
+    bpy.utils.register_class(ArmReloadBlenderAddon)
     bpy.app.handlers.load_post.append(on_load_post)
 
     # Hack to avoid _RestrictContext
@@ -736,6 +747,7 @@ def unregister():
     bpy.utils.unregister_class(ArmAddonUpdateButton)
     bpy.utils.unregister_class(ArmAddonRestoreButton)
     bpy.utils.unregister_class(ArmAddonHelpButton)
+    bpy.utils.unregister_class(ArmReloadBlenderAddon)
     bpy.app.handlers.load_post.remove(on_load_post)
 
 
