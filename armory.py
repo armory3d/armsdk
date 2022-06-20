@@ -21,8 +21,11 @@ import shutil
 import stat
 import subprocess
 import sys
+import textwrap
 import threading
+import traceback
 import typing
+from typing import Callable, Optional
 import webbrowser
 
 import bpy
@@ -43,6 +46,8 @@ if "is_running" not in locals():
     last_sdk_path = ""
     last_scripts_path = ""
     sdk_source = SDKSource.PREFS
+
+update_error_msg = ''
 
 
 def get_os():
@@ -324,6 +329,21 @@ class ArmoryAddonPreferences(AddonPreferences):
         else:
             row.operator("arm_addon.install", icon="IMPORT")
         row.operator("arm_addon.restore")
+        if update_error_msg != '':
+            col = box.column(align=True)
+            col.scale_y = 0.8
+            col.alignment = 'EXPAND'
+            col.alert = True
+
+            # Roughly estimate how much text fits in the current region's
+            # width (approximation of box width)
+            textwrap_width = int(bpy.context.region.width / 6)
+
+            col.label(text='An error occured:')
+            lines = textwrap.wrap(update_error_msg, width=textwrap_width, break_long_words=True, initial_indent='  ', subsequent_indent='  ')
+            for line in lines:
+                col.label(text=line)
+
         box.label(text="Check console for download progress. Please restart Blender after successful SDK update.")
 
         col = layout.column(align=(not self.show_advanced))
@@ -452,18 +472,19 @@ def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
-def run_proc(cmd, done=None):
+
+def run_proc(cmd: list[str], done: Optional[Callable[[bool], None]] = None):
     def fn(p, done):
         p.wait()
-        if done != None:
-            done(0)
+        if done is not None:
+            done(False)
     p = None
 
     try:
         p = subprocess.Popen(cmd)
     except OSError as err:
-        if done != None:
-            done(1)
+        if done is not None:
+            done(True)
         print("Running command:", *cmd, "\n")
         if err.errno == 12:
             print("Make sure there is enough space for the SDK (at least 500mb)")
@@ -472,8 +493,8 @@ def run_proc(cmd, done=None):
         else:
             print("error: " + str(err))
     except Exception as err:
-        if done != None:
-            done(1)
+        if done is not None:
+            done(True)
         print("Running command:", *cmd, "\n")
         print("error:", str(err), "\n")
     else:
@@ -481,21 +502,55 @@ def run_proc(cmd, done=None):
 
     return p
 
-def git_clone(done, p, gitn, n, recursive=False):
-    path = p + '/' + n
+
+def set_update_error(msg: str, err: Exception):
+    traceback.print_exception(type(err), err, err.__traceback__)
+
+    global update_error_msg
+    update_error_msg = msg + ' The full error message has been printed to the console.'
+
+
+def try_os_call(func: Callable, *args, **kwargs) -> bool:
+    try:
+        func(*args, **kwargs)
+    except OSError as err:
+        if hasattr(err, 'winerror'):
+            if err.winerror == 32:  # file is used by another process (ERROR_SHARING_VIOLATION)
+                set_update_error((
+                    f'The file/path {err.filename} is used by at least one other process (ERROR_SHARING_VIOLATION).'
+                    ' Please close all processes that reference it and try again.'
+                ), err)
+                return False
+
+        set_update_error('There was an unknown error while updating/restoring the Armory SDK.', err)
+        return False
+    except Exception as err:
+        set_update_error('There was an unknown error while updating/restoring the Armory SDK.', err)
+        return False
+
+    return True
+
+
+def git_clone(done: Callable[[bool], None], rootdir: str, gitn: str, subdir: str, recursive=False):
+    rootdir = os.path.normpath(rootdir)
+    path = rootdir + '/' + subdir if subdir != '' else rootdir
+
     if os.path.exists(path) and not os.path.exists(path + '_backup'):
-        os.rename(path, path + '_backup')
+        if not try_os_call(os.rename, path, path + '_backup'):
+            return
     if os.path.exists(path):
         shutil.rmtree(path, onerror=remove_readonly)
+
     if recursive:
         run_proc(['git', 'clone', '--recursive', 'https://github.com/' + gitn, path, '--depth', '1', '--shallow-submodules', '--jobs', '4'], done)
     else:
         run_proc(['git', 'clone', 'https://github.com/' + gitn, path, '--depth', '1'], done)
 
+
 def git_test():
     print('Testing if git is working...')
     try:
-        p = subprocess.Popen(['git','--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(['git', '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output, _ = p.communicate()
     except (OSError, Exception) as exception:
         print(str(exception))
@@ -505,11 +560,18 @@ def git_test():
             return True
     return False
 
-def restore_repo(p, n):
-    if os.path.exists(p + '/' + n + '_backup'):
-        if os.path.exists(p + '/' + n):
-            shutil.rmtree(p + '/' + n, onerror=remove_readonly)
-        os.rename(p + '/' + n + '_backup', p + '/' + n)
+
+def restore_repo(rootdir: str, subdir: str):
+    rootdir = os.path.normpath(rootdir)
+    path = rootdir + '/' + subdir if subdir != '' else rootdir
+    if os.path.exists(path + '_backup'):
+        if os.path.exists(path):
+            if not try_os_call(shutil.rmtree, path, onerror=remove_readonly):
+                return
+        if not try_os_call(os.rename, path + '_backup', path):
+            # TODO: if rmtree() succeeds but rename fails the SDK needs
+            #   manual cleanup by the user, add message to UI
+            return
 
 
 class ArmAddonInstallButton(bpy.types.Operator):
@@ -522,6 +584,7 @@ class ArmAddonInstallButton(bpy.types.Operator):
         download_sdk(self, context)
         return {"FINISHED"}
 
+
 class ArmAddonUpdateButton(bpy.types.Operator):
     """Update Armory SDK"""
     bl_idname = "arm_addon.update"
@@ -532,48 +595,33 @@ class ArmAddonUpdateButton(bpy.types.Operator):
         download_sdk(self, context)
         return {"FINISHED"}
 
-def download_sdk(self, context):
+
+def download_sdk(self: bpy.types.Operator, context):
+    global update_error_msg
+    update_error_msg = ''
+
     sdk_path = get_sdk_path(context)
     if sdk_path == "":
         self.report({"ERROR"}, "Configure Armory SDK path first")
         return {"CANCELLED"}
 
     self.report({'INFO'}, 'Downloading Armory SDK, check console for details.')
-    print('Armory (add-on v' + str(bl_info['version']) + '): Cloning [armory, iron, haxebullet, haxerecast, zui] repositories')
+    print('Armory (current add-on version' + str(bl_info['version']) + '): Cloning SDK repository recursively')
     if not os.path.exists(sdk_path):
         os.makedirs(sdk_path)
-    os.chdir(sdk_path)
     if not git_test():
         print("Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly.")
         self.report({"ERROR"}, "Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly.")
         return {"CANCELLED"}
-    global repos_updated
-    global repos_total
-    global repos_done
-    repos_updated = 0
-    repos_done = 0
-    repos_total = 9
-    def done(error=0):
-        global repos_updated
-        global repos_total
-        global repos_done
-        repos_done += 1
-        if error == 0:
-            repos_updated += 1
-        if repos_updated == repos_total:
+
+    def done(failed: bool):
+        if failed:
+            self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
+        else:
             update_armory_py(sdk_path)
             print('Armory SDK download completed, please restart Blender..')
-        elif repos_done == repos_total:
-            self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
-    git_clone(done, sdk_path, 'armory3d/armory', 'armory')
-    git_clone(done, sdk_path, 'armory3d/iron', 'iron')
-    git_clone(done, sdk_path, 'armory3d/haxebullet', 'lib/haxebullet')
-    git_clone(done, sdk_path, 'armory3d/haxerecast', 'lib/haxerecast')
-    git_clone(done, sdk_path, 'armory3d/zui', 'lib/zui')
-    git_clone(done, sdk_path, 'armory3d/armory_tools', 'lib/armory_tools')
-    git_clone(done, sdk_path, 'armory3d/armorcore_bin', 'Krom')
-    git_clone(done, sdk_path, 'armory3d/Kha', 'Kha', recursive=True)
-    git_clone(done, sdk_path, 'armory3d/nodejs_bin/', 'nodejs')
+
+    git_clone(done, sdk_path, 'armory3d/armsdk', '', recursive=True)
 
 
 class ArmAddonRestoreButton(bpy.types.Operator):
@@ -587,16 +635,7 @@ class ArmAddonRestoreButton(bpy.types.Operator):
         if sdk_path == "":
             self.report({"ERROR"}, "Configure Armory SDK path first")
             return {"CANCELLED"}
-        os.chdir(sdk_path)
-        restore_repo(sdk_path, 'armory')
-        restore_repo(sdk_path, 'iron')
-        restore_repo(sdk_path, 'lib/haxebullet')
-        restore_repo(sdk_path, 'lib/haxerecast')
-        restore_repo(sdk_path, 'lib/zui')
-        restore_repo(sdk_path, 'lib/armory_tools')
-        restore_repo(sdk_path, 'Kha')
-        restore_repo(sdk_path, 'Krom')
-        restore_repo(sdk_path, 'nodejs')
+        restore_repo(sdk_path, '')
         self.report({'INFO'}, 'Restored stable version')
         return {"FINISHED"}
 
