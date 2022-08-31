@@ -74,12 +74,9 @@ def detect_sdk_path():
     area = win.screen.areas[0]
     area_type = area.type
     area.type = "INFO"
-    override = bpy.context.copy()
-    override['window'] = win
-    override['screen'] = win.screen
-    override['area'] = win.screen.areas[0]
-    bpy.ops.info.select_all(override, action='SELECT')
-    bpy.ops.info.report_copy(override)
+    with bpy.context.temp_override(window=win, screen=win.screen, area=area):
+        bpy.ops.info.select_all(action='SELECT')
+        bpy.ops.info.report_copy()
     area.type = area_type
     clipboard = bpy.context.window_manager.clipboard
 
