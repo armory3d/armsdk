@@ -151,6 +151,12 @@ class ArmoryAddonPreferences(AddonPreferences):
         self.html5_copy_path = bpy.path.reduce_dirs([bpy.path.abspath(self.html5_copy_path)])[0]
 
     sdk_path: StringProperty(name="SDK Path", subtype="FILE_PATH", update=sdk_path_update, default="")
+    update_submodules: BoolProperty(
+        name="Update Submodules", default=True, description=(
+            "If enabled, update the submodules to their most current commit after downloading the SDK."
+            " Otherwise, the submodules are checked out at whatever commit the latest SDK references."
+        )
+    )
 
     show_advanced: BoolProperty(name="Show Advanced", default=False)
     tabs: EnumProperty(
@@ -321,6 +327,8 @@ class ArmoryAddonPreferences(AddonPreferences):
         box = layout.box().column()
         box.label(text="Armory SDK Manager")
         box.label(text="Note: Development version may run unstable!")
+
+        box.prop(self, "update_submodules")
         row = box.row(align=True)
         row.alignment = 'EXPAND'
         row.operator("arm_addon.help", icon="URL")
@@ -547,7 +555,7 @@ def git_clone(done: Callable[[bool], None], rootdir: str, gitn: str, subdir: str
         run_proc(['git', 'clone', 'https://github.com/' + gitn, path, '--depth', '1'], done)
 
 
-def git_test():
+def git_test(self: bpy.types.Operator, required_version=None):
     print('Testing if git is working...')
     try:
         p = subprocess.Popen(['git', '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -555,9 +563,22 @@ def git_test():
     except (OSError, Exception) as exception:
         print(str(exception))
     else:
-        if re.match("git version [0-9]+.[0-9]+.[0-9]+", output.decode('utf-8')):
-            print('Test succeeded.')
+        matched = re.match("git version ([0-9]+).([0-9]+).([0-9]+)", output.decode('utf-8'))
+        if matched:
+            if required_version is not None:
+                matched_version = (int(matched.group(1)), int(matched.group(2)), int(matched.group(3)))
+                if matched_version < required_version:
+                    msg = f"Installed git version {matched_version} is too old, please update git to version {required_version} or above"
+                    print(msg)
+                    self.report({"ERROR"}, msg)
+                    return False
+
+            print('Git test succeeded.')
             return True
+
+    msg = "Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly."
+    print(msg)
+    self.report({"ERROR"}, msg)
     return False
 
 
@@ -609,19 +630,38 @@ def download_sdk(self: bpy.types.Operator, context):
     print('Armory (current add-on version' + str(bl_info['version']) + '): Cloning SDK repository recursively')
     if not os.path.exists(sdk_path):
         os.makedirs(sdk_path)
-    if not git_test():
-        print("Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly.")
-        self.report({"ERROR"}, "Git test failed. Make sure git is installed (https://git-scm.com/downloads) or is working correctly.")
+    if not git_test(self):
         return {"CANCELLED"}
+
+    preferences = context.preferences
+    addon_prefs = preferences.addons["armory"].preferences
 
     def done(failed: bool):
         if failed:
-            self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
+            self.report({"ERROR"}, "Failed updating the SDK submodules, check console for details.")
         else:
             update_armory_py(sdk_path)
             print('Armory SDK download completed, please restart Blender..')
 
-    git_clone(done, sdk_path, 'armory3d/armsdk', '', recursive=True)
+    def done_clone(failed: bool):
+        if failed:
+            self.report({"ERROR"}, "Failed downloading Armory SDK, check console for details.")
+            return
+
+        if addon_prefs.update_submodules:
+            if not git_test(self, (2, 34, 0)):
+                # For some unknown (and seemingly not fixable) reason, git submodule update --remote
+                # fails in earlier versions of Git with "fatal: Needed a single revision"
+                done(True)
+            else:
+                prev_cwd = os.getcwd()
+                os.chdir(sdk_path)
+                run_proc(['git', 'submodule', 'update', '--remote', '--depth', '1', '--jobs', '4'], done)
+                os.chdir(prev_cwd)
+        else:
+            done(False)
+
+    git_clone(done_clone, sdk_path, 'armory3d/armsdk', '', recursive=True)
 
 
 class ArmAddonRestoreButton(bpy.types.Operator):
