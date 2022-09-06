@@ -328,7 +328,7 @@ class ArmoryAddonPreferences(AddonPreferences):
             row.operator("arm_addon.update", icon="FILE_REFRESH")
         else:
             row.operator("arm_addon.install", icon="IMPORT")
-        row.operator("arm_addon.restore")
+        row.operator("arm_addon.restore", icon="LOOP_BACK")
         if update_error_msg != '':
             col = box.column(align=True)
             col.scale_y = 0.8
