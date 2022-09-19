@@ -10,9 +10,6 @@
 [submodule "lib/haxerecast"]
 	path = lib/haxerecast
 	url = https://github.com/armory3d/haxerecast
-[submodule "lib/iron_format"]
-	path = lib/iron_format
-	url = https://github.com/armory3d/iron_format
 [submodule "lib/zui"]
 	path = lib/zui
 	url = https://github.com/armory3d/zui
