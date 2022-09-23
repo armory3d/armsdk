@@ -171,7 +171,8 @@ class ArmoryAddonPreferences(AddonPreferences):
                  ('custom', "Custom", "Use a Custom Code Editor")],
         name="Code Editor", default='default', description='Use this editor for editing scripts')
     ui_scale: FloatProperty(name='UI Scale', description='Adjust UI scale for Armory tools', default=1.0, min=1.0, max=4.0)
-    khamake_threads: IntProperty(name='Khamake Threads', description='Allow Khamake to spawn multiple processes for faster builds', default=4, min=1)
+    khamake_threads: IntProperty(name='Khamake Processes', description='Allow Khamake to spawn multiple processes for faster builds', default=4, min=1)
+    khamake_threads_use_auto: BoolProperty(name='Auto', description='Let Khamake choose the number of processes automatically', default=False)
     compilation_server: BoolProperty(name='Compilation Server', description='Allow Haxe to create a local compilation server for faster builds', default=True)
     renderdoc_path: StringProperty(name="RenderDoc Path", description="Binary path", subtype="FILE_PATH", update=renderdoc_path_update, default="")
     ffmpeg_path: StringProperty(name="FFMPEG Path", description="Binary path", subtype="FILE_PATH", update=ffmpeg_path_update, default="")
@@ -377,7 +378,11 @@ class ArmoryAddonPreferences(AddonPreferences):
 
             elif self.tabs == "build":
                 box.label(text="Build Preferences")
-                box.prop(self, "khamake_threads")
+                row = box.split(factor=0.8, align=True)
+                _col = row.column(align=True)
+                _col.enabled = not self.khamake_threads_use_auto
+                _col.prop(self, "khamake_threads")
+                row.prop(self, "khamake_threads_use_auto", toggle=True)
                 box.prop(self, "compilation_server")
                 box.prop(self, "open_build_directory")
                 box.prop(self, "save_on_build")
