@@ -477,6 +477,51 @@ def get_sdk_path(context: bpy.context) -> str:
     addon_prefs = preferences.addons["armory"].preferences
     return addon_prefs.sdk_path
 
+def apply_unix_permissions(sdk):
+    """Apply permissions to executable files in Linux and macOS
+
+    The .zip format does not preserve file permissions and will
+    cause every subprocess of Armory3D to not work at all. This
+    workaround fixes the issue so Armory releases will work.
+    """
+    if get_os() == 'linux':
+        paths=[
+            sdk + "/lib/armory_tools/cmft/cmft-linux64",
+            sdk + "/Kha/Tools/linux_x64/haxe",
+            sdk + "/Krom/Krom",
+            # NodeJS
+            sdk + "/nodejs/node-linux32",
+            sdk + "/nodejs/node-linux64",
+            sdk + "/nodejs/node-linuxarm",
+            # Kha x64
+            sdk + "/Kha/Kinc/Tools/linux_x64/kmake",
+            sdk + "/Kha/Kinc/Tools/linux_x64/kraffiti",
+            sdk + "/Kha/Kinc/Tools/linux_x64/krafix",
+            # Kha arm
+            sdk + "/Kha/Kinc/Tools/linux_arm/kmake",
+            sdk + "/Kha/Kinc/Tools/linux_arm/kraffiti",
+            sdk + "/Kha/Kinc/Tools/linux_arm/krafix",
+            # Kha arm64
+            sdk + "/Kha/Kinc/Tools/linux_arm64/kmake",
+            sdk + "/Kha/Kinc/Tools/linux_arm64/kraffiti",
+            sdk + "/Kha/Kinc/Tools/linux_arm64/krafix",
+        ]
+        for path in paths:
+            os.chmod(path, 0o777)
+
+    if get_os() == 'mac':
+        paths=[
+            sdk + "/Kha/Kinc/Tools/kraffiti/kraffiti-osx",
+            sdk + "/lib/armory_tools/cmft/cmft-osx",
+            sdk + "/Kha/Tools/haxe/haxe-osx",
+            sdk + "/nodejs/node-osx",
+            sdk + "/Kha/Kinc/Tools/macos/kmake",
+            sdk + "/Kha/Kinc/Tools/macos/kraffiti",
+            sdk + "/Kha/Kinc/Tools/macos/krafix",
+            sdk + "/Krom/Krom.app/Contents/MacOS/Krom",
+        ]
+        for path in paths:
+            os.chmod(path, 0o777)
 
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
@@ -736,6 +781,8 @@ def start_armory(sdk_path: str):
               " Please make sure the SDK path is correct or that the SDK"
               " was downloaded correctly.")
         return
+
+    apply_unix_permissions(sdk_path)
 
     scripts_path = os.path.join(armory_path, "blender")
     sys.path.append(scripts_path)
