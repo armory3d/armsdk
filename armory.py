@@ -532,17 +532,17 @@ def apply_unix_permissions(sdk):
 
     if get_os() == 'mac':
         paths=[
-            sdk + "lib/armory_tools/cmft/cmft-osx",
-            sdk + "nodejs/node-osx",
-            sdk + "Krom/Krom.app/Contents/MacOS/Krom",
+            sdk + "/lib/armory_tools/cmft/cmft-osx",
+            sdk + "/nodejs/node-osx",
+            sdk + "/Krom/Krom.app/Contents/MacOS/Krom",
             # Kha tools
-            sdk + "Kha/Tools/macos/haxe",
-            sdk + "Kha/Tools/macos/lame",
-            sdk + "Kha/Tools/macos/oggenc",
+            sdk + "/Kha/Tools/macos/haxe",
+            sdk + "/Kha/Tools/macos/lame",
+            sdk + "/Kha/Tools/macos/oggenc",
             # Kinc tools
-            sdk + "Kha/Kinc/Tools/macos/kmake",
-            sdk + "Kha/Kinc/Tools/macos/kraffiti",
-            sdk + "Kha/Kinc/Tools/macos/krafix",
+            sdk + "/Kha/Kinc/Tools/macos/kmake",
+            sdk + "/Kha/Kinc/Tools/macos/kraffiti",
+            sdk + "/Kha/Kinc/Tools/macos/krafix",
         ]
         for path in paths:
             os.chmod(path, 0o777)
