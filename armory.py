@@ -322,19 +322,29 @@ class ArmoryAddonPreferences(AddonPreferences):
                 row.label(text=f'Using local SDK from {sdk_path}')
             elif sdk_source == SDKSource.ENV_VAR:
                 row.label(text=f'Using SDK from "ARMSDK" environment variable: {sdk_path}')
+
         box = layout.box().column()
-        box.label(text="Armory SDK Manager")
+
+        row = box.row(align=True)
+        row.label(text="Armory SDK Manager")
+        col = row.column()
+        col.alignment = "RIGHT"
+        col.operator("arm_addon.help", icon="URL")
+
         box.label(text="Note: Development version may run unstable!")
+        box.separator()
 
         box.prop(self, "update_submodules")
+
         row = box.row(align=True)
         row.alignment = 'EXPAND'
-        row.operator("arm_addon.help", icon="URL")
+        row.operator("arm_addon.print_version_info", icon="INFO")
         if sdk_exists:
             row.operator("arm_addon.update", icon="FILE_REFRESH")
         else:
             row.operator("arm_addon.install", icon="IMPORT")
         row.operator("arm_addon.restore", icon="LOOP_BACK")
+
         if update_error_msg != '':
             col = box.column(align=True)
             col.scale_y = 0.8
@@ -656,6 +666,49 @@ def restore_repo(rootdir: str, subdir: str):
             return
 
 
+class ArmAddonPrintVersionInfoButton(bpy.types.Operator):
+    bl_idname = "arm_addon.print_version_info"
+    bl_label = "Print Version Info"
+    bl_description = "Print detailed information about the used SDK version to the console. This requires Git"
+
+    def execute(self, context):
+        sdk_path = get_sdk_path(context)
+        if sdk_path == "":
+            self.report({"ERROR"}, "Configure Armory SDK path first")
+            return {"CANCELLED"}
+
+        if not git_test(self):
+            return {"CANCELLED"}
+
+        def print_version_info():
+            print("==============================")
+            print("| SDK: Current commit        |")
+            print("==============================")
+            subprocess.check_call(["git", "branch", "-v"], cwd=sdk_path)
+
+            print("==============================")
+            print("| Submodules: Current commit |")
+            print("==============================")
+            subprocess.check_call(["git", "submodule", "status", "--recursive"], cwd=sdk_path)
+
+            print("==============================")
+            print("| SDK: Modified files        |")
+            print("==============================")
+            subprocess.check_call(["git", "status", "--short"], cwd=sdk_path)
+
+            print("==============================")
+            print("| Submodules: Modified files |")
+            print("==============================")
+            subprocess.check_call(["git", "submodule", "foreach", "--recursive", "git status --short"], cwd=sdk_path)
+
+            print("Done.")
+
+        # Don't block UI
+        threading.Thread(target=print_version_info).start()
+
+        return {"FINISHED"}
+
+
 class ArmAddonInstallButton(bpy.types.Operator):
     """Download and set up Armory SDK"""
     bl_idname = "arm_addon.install"
@@ -861,6 +914,7 @@ def on_register_post():
 
 def register():
     bpy.utils.register_class(ArmoryAddonPreferences)
+    bpy.utils.register_class(ArmAddonPrintVersionInfoButton)
     bpy.utils.register_class(ArmAddonInstallButton)
     bpy.utils.register_class(ArmAddonUpdateButton)
     bpy.utils.register_class(ArmAddonRestoreButton)
@@ -875,6 +929,7 @@ def unregister():
     stop_armory()
     bpy.utils.unregister_class(ArmoryAddonPreferences)
     bpy.utils.unregister_class(ArmAddonInstallButton)
+    bpy.utils.unregister_class(ArmAddonPrintVersionInfoButton)
     bpy.utils.unregister_class(ArmAddonUpdateButton)
     bpy.utils.unregister_class(ArmAddonRestoreButton)
     bpy.utils.unregister_class(ArmAddonHelpButton)
