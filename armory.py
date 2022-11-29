@@ -694,14 +694,12 @@ class ArmAddonPrintVersionInfoButton(bpy.types.Operator):
             print("==============================")
             print("| SDK: Modified files        |")
             print("==============================")
-            subprocess.check_call(["git", "diff", "--name-only"], cwd=sdk_path)  # Unstaged changes
-            subprocess.check_call(["git", "diff", "--name-only", "--cached"], cwd=sdk_path)  # Staged changes
+            subprocess.check_call(["git", "status", "--short"], cwd=sdk_path)
 
             print("==============================")
             print("| Submodules: Modified files |")
             print("==============================")
-            subprocess.check_call(["git", "submodule", "foreach", "--recursive", "git diff --name-only"], cwd=sdk_path)
-            subprocess.check_call(["git", "submodule", "foreach", "--recursive", "git diff --name-only --cached"], cwd=sdk_path)
+            subprocess.check_call(["git", "submodule", "foreach", "--recursive", "git status --short"], cwd=sdk_path)
 
             print("Done.")
 
