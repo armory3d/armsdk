@@ -8,7 +8,7 @@
 --macro include('iron', true, null, ['../iron/Sources'])
 --macro include('haxebullet', true, null, ['../lib/haxebullet/Sources'])
 --macro include('haxerecast', true, null, ['../lib/haxerecast/Sources'])
---macro include('armory', true, null, ['../armory/Sources','../iron/Sources'])
+--macro include('armory', true, ['armory.network'], ['../armory/Sources','../iron/Sources'])
 --macro include('zui', true, null, ['../lib/zui/Sources'])
 -D arm_bullet
 -D arm_physics
