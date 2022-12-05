@@ -22,7 +22,7 @@ jobs:
           haxe api.hxml -xml build/api.xml -D doc-gen
           haxe dox.hxml
       - name: Deploy gh-pages
-        uses: JamesIves/github-pages-deploy-action@4.4.1
+        uses: JamesIves/github-pages-deploy-action@v4.4.1
         with:
           branch: gh-pages
           folder: api/pages
