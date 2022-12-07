@@ -10,10 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - uses: krdlab/setup-haxe@v1
+      - uses: krdlab/setup-haxe@v1.2.0
       - name: Setup
         run: haxelib install dox
       - name: Build documentation
@@ -22,7 +22,8 @@ jobs:
           haxe api.hxml -xml build/api.xml -D doc-gen
           haxe dox.hxml
       - name: Deploy gh-pages
-        uses: JamesIves/github-pages-deploy-action@4.1.5
+        uses: JamesIves/github-pages-deploy-action@v4.4.1
         with:
           branch: gh-pages
           folder: api/pages
+          single-commit: true

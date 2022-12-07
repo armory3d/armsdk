@@ -680,6 +680,11 @@ class ArmAddonPrintVersionInfoButton(bpy.types.Operator):
         if not git_test(self):
             return {"CANCELLED"}
 
+        if not os.path.exists(f'{sdk_path}/.git'):
+            msg=f"{sdk_path}/.git not found"
+            self.report({"ERROR"}, msg)
+            return {"CANCELLED"}
+
         def print_version_info():
             print("==============================")
             print("| SDK: Current commit        |")
