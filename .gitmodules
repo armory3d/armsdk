@@ -1,6 +1,7 @@
 [submodule "armory"]
 	path = armory
 	url = https://github.com/armory3d/armory
+	branch = armorcore
 [submodule "iron"]
 	path = iron
 	url = https://github.com/armory3d/iron
