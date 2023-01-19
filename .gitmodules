@@ -22,3 +22,6 @@
 [submodule "Krom"]
 	path = Krom
 	url = https://github.com/armory3d/armorcore_bin
+[submodule "armorcore"]
+	path = armorcore
+	url = https://github.com/armory3d/armorcore
