@@ -178,6 +178,13 @@ class ArmoryAddonPreferences(AddonPreferences):
     ffmpeg_path: StringProperty(name="FFMPEG Path", description="Binary path", subtype="FILE_PATH", update=ffmpeg_path_update, default="")
     save_on_build: BoolProperty(name="Save on Build", description="Save .blend", default=False)
     open_build_directory: BoolProperty(name="Open Build Directory After Publishing", description="Open the build directory after successfully publishing the project", default=False)
+    cmft_use_opencl: BoolProperty(
+        name="CMFT: Use OpenCL", default=True,
+        description=(
+            "Whether to use OpenCL processing to generate radiance maps with CMFT."
+            " If you experience extremely long build times caused by CMFT, try disabling this option."
+            " For more information see https://github.com/armory3d/armory/issues/2760"
+        ))
     legacy_shaders: BoolProperty(name="Legacy Shaders", description="Attempt to compile shaders runnable on older hardware, use this for WebGL1 or GLES2 support in mobile render path", default=False)
     relative_paths: BoolProperty(name="Generate Relative Paths", description="Write relative paths in khafile", default=False)
     viewport_controls: EnumProperty(
@@ -396,6 +403,9 @@ class ArmoryAddonPreferences(AddonPreferences):
                 box.prop(self, "compilation_server")
                 box.prop(self, "open_build_directory")
                 box.prop(self, "save_on_build")
+
+                box.separator()
+                box.prop(self, "cmft_use_opencl")
 
                 box = box_main.column()
                 box.label(text="Android Settings")
