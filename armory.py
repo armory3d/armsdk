@@ -516,10 +516,6 @@ def apply_unix_permissions(sdk):
             os.path.join(sdk, "Kha/Tools/linux_x64/haxe"),
             os.path.join(sdk, "Kha/Tools/linux_x64/lame"),
             os.path.join(sdk, "Kha/Tools/linux_x64/oggenc"),
-            # Kha tools arm
-            os.path.join(sdk, "Kha/Tools/linux_arm/haxe"),
-            os.path.join(sdk, "Kha/Tools/linux_arm/lame"),
-            os.path.join(sdk, "Kha/Tools/linux_arm/oggenc"),
             # Kha tools arm64
             os.path.join(sdk, "Kha/Tools/linux_arm64/haxe"),
             os.path.join(sdk, "Kha/Tools/linux_arm64/lame"),
