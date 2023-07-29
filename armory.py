@@ -301,7 +301,8 @@ class ArmoryAddonPreferences(AddonPreferences):
     use_armory_py_symlink: BoolProperty(
         name="Symlink armory.py", default=False,
         description=("Automatically symlink the registered armory.py with the original armory.py from the SDK for faster"
-                     " development. Warning: this will invalidate the installation if the SDK is removed")
+                     " development. Warning: this will invalidate the installation if the SDK is removed"),
+        update=lambda self, context: update_armory_py(get_sdk_path(context)),
     )
 
     def draw(self, context):
