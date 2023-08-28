@@ -6,7 +6,7 @@ bl_info = {
     "location": "Properties -> Render -> Armory Player",
     "description": "3D Game Engine for Blender",
     "author": "Armory3D.org",
-    "version": (2023, 7, 0),
+    "version": (2023, 8, 0),
     "blender": (3, 6, 0),
     "doc_url": "https://github.com/armory3d/armory/wiki",
     "tracker_url": "https://github.com/armory3d/armory/issues"
@@ -301,7 +301,8 @@ class ArmoryAddonPreferences(AddonPreferences):
     use_armory_py_symlink: BoolProperty(
         name="Symlink armory.py", default=False,
         description=("Automatically symlink the registered armory.py with the original armory.py from the SDK for faster"
-                     " development. Warning: this will invalidate the installation if the SDK is removed")
+                     " development. Warning: this will invalidate the installation if the SDK is removed"),
+        update=lambda self, context: update_armory_py(get_sdk_path(context)),
     )
 
     def draw(self, context):
@@ -506,53 +507,49 @@ def apply_unix_permissions(sdk):
     """
     if get_os() == 'linux':
         paths=[
-            sdk + "/lib/armory_tools/cmft/cmft-linux64",
-            sdk + "/Krom/Krom",
+            os.path.join(sdk, "lib/armory_tools/cmft/cmft-linux64"),
+            os.path.join(sdk, "Krom/Krom"),
             # NodeJS
-            sdk + "/nodejs/node-linux32",
-            sdk + "/nodejs/node-linux64",
-            sdk + "/nodejs/node-linuxarm",
+            os.path.join(sdk, "nodejs/node-linux32"),
+            os.path.join(sdk, "nodejs/node-linux64"),
+            os.path.join(sdk, "nodejs/node-linuxarm"),
             # Kha tools x64
-            sdk + "/Kha/Tools/linux_x64/haxe",
-            sdk + "/Kha/Tools/linux_x64/lame",
-            sdk + "/Kha/Tools/linux_x64/oggenc",
-            # Kha tools arm
-            sdk + "/Kha/Tools/linux_arm/haxe",
-            sdk + "/Kha/Tools/linux_arm/lame",
-            sdk + "/Kha/Tools/linux_arm/oggenc",
+            os.path.join(sdk, "Kha/Tools/linux_x64/haxe"),
+            os.path.join(sdk, "Kha/Tools/linux_x64/lame"),
+            os.path.join(sdk, "Kha/Tools/linux_x64/oggenc"),
             # Kha tools arm64
-            sdk + "/Kha/Tools/linux_arm64/haxe",
-            sdk + "/Kha/Tools/linux_arm64/lame",
-            sdk + "/Kha/Tools/linux_arm64/oggenc",
+            os.path.join(sdk, "Kha/Tools/linux_arm64/haxe"),
+            os.path.join(sdk, "Kha/Tools/linux_arm64/lame"),
+            os.path.join(sdk, "Kha/Tools/linux_arm64/oggenc"),
             # Kinc tools x64
-            sdk + "/Kha/Kinc/Tools/linux_x64/kmake",
-            sdk + "/Kha/Kinc/Tools/linux_x64/kraffiti",
-            sdk + "/Kha/Kinc/Tools/linux_x64/krafix",
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_x64/kmake"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_x64/kraffiti"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_x64/krafix"),
             # Kinc tools arm
-            sdk + "/Kha/Kinc/Tools/linux_arm/kmake",
-            sdk + "/Kha/Kinc/Tools/linux_arm/kraffiti",
-            sdk + "/Kha/Kinc/Tools/linux_arm/krafix",
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_arm/kmake"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_arm/kraffiti"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_arm/krafix"),
             # Kinc tools arm64
-            sdk + "/Kha/Kinc/Tools/linux_arm64/kmake",
-            sdk + "/Kha/Kinc/Tools/linux_arm64/kraffiti",
-            sdk + "/Kha/Kinc/Tools/linux_arm64/krafix",
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_arm64/kmake"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_arm64/kraffiti"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_arm64/krafix"),
         ]
         for path in paths:
             os.chmod(path, 0o777)
 
     if get_os() == 'mac':
         paths=[
-            sdk + "/lib/armory_tools/cmft/cmft-osx",
-            sdk + "/nodejs/node-osx",
-            sdk + "/Krom/Krom.app/Contents/MacOS/Krom",
+            os.path.join(sdk, "lib/armory_tools/cmft/cmft-osx"),
+            os.path.join(sdk, "nodejs/node-osx"),
+            os.path.join(sdk, "Krom/Krom.app/Contents/MacOS/Krom"),
             # Kha tools
-            sdk + "/Kha/Tools/macos/haxe",
-            sdk + "/Kha/Tools/macos/lame",
-            sdk + "/Kha/Tools/macos/oggenc",
+            os.path.join(sdk, "Kha/Tools/macos/haxe"),
+            os.path.join(sdk, "Kha/Tools/macos/lame"),
+            os.path.join(sdk, "Kha/Tools/macos/oggenc"),
             # Kinc tools
-            sdk + "/Kha/Kinc/Tools/macos/kmake",
-            sdk + "/Kha/Kinc/Tools/macos/kraffiti",
-            sdk + "/Kha/Kinc/Tools/macos/krafix",
+            os.path.join(sdk, "Kha/Kinc/Tools/macos/kmake"),
+            os.path.join(sdk, "Kha/Kinc/Tools/macos/kraffiti"),
+            os.path.join(sdk, "Kha/Kinc/Tools/macos/krafix"),
         ]
         for path in paths:
             os.chmod(path, 0o777)
